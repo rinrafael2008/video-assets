@@ -3,7 +3,7 @@ or on anything that happened later."""
 import numpy as np
 import pandas as pd
 
-from footy.features import FEATURE_COLUMNS, build_features
+from footy.features import FEATURE_COLUMNS, SHOT_COLUMNS, build_features
 from footy.split import chronological_split
 
 
@@ -26,7 +26,7 @@ def test_deleting_the_future_does_not_change_the_past(matches):
 
 
 def test_features_do_not_use_match_statistics():
-    forbidden = {"FTHome", "FTAway", "FTResult", "HTHome", "HomeShots", "HomeElo", "Form5Home",
+    forbidden = {"FTHome", "FTAway", "FTResult", "HTHome", "HomeShots", "HomeTarget", "HomeElo", "Form5Home",
                  "OddHome", "MaxHome", "C_LTH"}
     assert forbidden.isdisjoint(FEATURE_COLUMNS)
 
@@ -52,4 +52,22 @@ def test_future_fixtures_get_features_but_change_nothing(matches):
     a = build_features(matches)
     b = build_features(with_fixture)
     pd.testing.assert_frame_equal(a[FEATURE_COLUMNS], b.iloc[:-1][FEATURE_COLUMNS])
-    assert b.iloc[-1][FEATURE_COLUMNS].notna().all()
+    assert b.iloc[-1][FEATURE_COLUMNS].notna().all()      # last season has shot data
+
+
+def test_a_matchs_own_shots_never_reach_its_features(matches):
+    i = len(matches) - 50
+    a = build_features(matches)
+    t = matches.copy()
+    t.loc[i, ["HomeShots", "HomeTarget"]] = [60, 40]          # absurd numbers for match i only
+    b = build_features(t)
+    pd.testing.assert_frame_equal(a.loc[:i, SHOT_COLUMNS], b.loc[:i, SHOT_COLUMNS])
+    home = matches.loc[i, "HomeTeam"]
+    later = b.index[(b.index > i) & ((b.HomeTeam == home) | (b.AwayTeam == home))][0]
+    assert not a.loc[later, SHOT_COLUMNS].equals(b.loc[later, SHOT_COLUMNS])   # ...but later matches see them
+
+
+def test_shot_features_missing_where_no_shot_data(matches):
+    f = build_features(matches)
+    assert f.loc[f.Season <= 2003, SHOT_COLUMNS].isna().all().all()
+    assert f.loc[f.Season >= 2005, SHOT_COLUMNS].notna().all().all()

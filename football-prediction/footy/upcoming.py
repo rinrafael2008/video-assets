@@ -20,15 +20,14 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import json
 import sys
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-
 from footy import config, data
 from footy.features import build_features
-from footy.models import GoalsModel, SklearnOutcomeModel
+from footy.models import GoalsModel, model_by_name
 from footy.odds import overround, remove_margin_proportional
 
 ODDS = ["OddHome", "OddDraw", "OddAway"]
@@ -67,7 +66,22 @@ def check_team_names(fixtures, known_teams) -> list[str]:
     return problems
 
 
-def predict(history_raw: pd.DataFrame, fixtures: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+DEFAULT_MODEL = "Logistic regression (C=0.1)"
+
+
+def country_of(division: str) -> str:
+    return next((c for c, divs in config.LEAGUE_GROUPS.items() if division in divs), division)
+
+
+def chosen_model_name(country: str, models_dir=None) -> str:
+    """The model that won validation for this league (saved by footy.study), else a safe default."""
+    summary = (models_dir or config.OUTPUT_DIR / "leagues") / country / "summary.json"
+    if summary.exists():
+        return json.loads(summary.read_text()).get("best_ml_model", DEFAULT_MODEL)
+    return DEFAULT_MODEL
+
+
+def predict(history_raw: pd.DataFrame, fixtures: pd.DataFrame, models_dir=None) -> tuple[pd.DataFrame, list[str]]:
     """Return (predictions for score-less fixture rows, list of warnings)."""
     missing = [c for c in REQUIRED if c not in fixtures.columns]
     if missing:
@@ -109,11 +123,27 @@ def predict(history_raw: pd.DataFrame, fixtures: pd.DataFrame) -> tuple[pd.DataF
     if upcoming.empty:
         raise ValueError("No upcoming matches found (every row has a score).")
 
-    model = SklearnOutcomeModel("Logistic regression (C=0.1)", LogisticRegression(C=0.1, max_iter=2000)).fit(train)
-    p = model.predict_proba(upcoming)
-    g = GoalsModel().fit(train).predict(upcoming)
+    # One model per country, trained on that country's matches only, using the model that won
+    # validation for that league in `python -m footy.study` (with or without shot features).
+    upcoming = upcoming.reset_index(drop=True)
+    p = np.full((len(upcoming), 3), np.nan)
+    g = {k: np.full(len(upcoming), np.nan) for k in ("exp_home_goals", "exp_away_goals", "p_over25")}
+    names = []
+    for group in sorted({country_of(d) for d in upcoming.Division}):
+        divs = config.LEAGUE_GROUPS.get(group, [group])
+        rows = upcoming.Division.isin(divs).to_numpy()
+        name = chosen_model_name(group, models_dir)
+        model = model_by_name(name).fit(train[train.Division.isin(divs)])
+        p[rows] = model.predict_proba(upcoming[rows])
+        goals = GoalsModel(features=model.features).fit(train[train.Division.isin(divs)]).predict(upcoming[rows])
+        for k in g:
+            g[k][rows] = goals[k]
+        names += [(rows, name)]
 
     out = upcoming[["Division", "MatchDate", "HomeTeam", "AwayTeam", "Bookmaker", *ODDS]].reset_index(drop=True)
+    out["model_used"] = ""
+    for rows, name in names:
+        out.loc[rows, "model_used"] = name
     out[["model_pH", "model_pD", "model_pA"]] = p
     out[["model_fair_oddH", "model_fair_oddD", "model_fair_oddA"]] = 1 / p
     odds = out[ODDS].to_numpy(float)

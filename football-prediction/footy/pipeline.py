@@ -17,7 +17,7 @@ import pandas as pd
 from footy import backtest as bt
 from footy import config, data, evaluate as ev
 from footy.features import build_features
-from footy.models import EloBaseline, GoalsModel, candidate_outcome_models, outcome_index
+from footy.models import EloBaseline, GoalsModel, candidate_outcome_models, model_by_name, outcome_index
 from footy.odds import overround, remove_margin_power, remove_margin_proportional
 from footy.split import chronological_split
 
@@ -59,8 +59,9 @@ def run(matches: pd.DataFrame, out_dir=config.OUTPUT_DIR, verbose=True,
     say("3/6 Refitting on TRAIN+VALIDATION, predicting TEST once...")
     trval = pd.concat([train, valid])
     elo_model = EloBaseline().fit(trval)
-    ml_model = [m for m in candidate_outcome_models() if m.name == best_ml.name][0].fit(trval)
-    goals_model = GoalsModel().fit(trval)
+    ml_model = model_by_name(best_ml.name).fit(trval)
+    # the goals model uses the same inputs as the winning outcome model (with or without shots)
+    goals_model = GoalsModel(features=ml_model.features).fit(trval)
     p_elo, p_ml = elo_model.predict_proba(test), ml_model.predict_proba(test)
     goals = goals_model.predict(test)
 

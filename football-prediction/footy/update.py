@@ -98,6 +98,8 @@ def to_dataset_format(csv_text: str, div: str) -> pd.DataFrame:
         "MaxHome": _first(raw, "MaxH", "BbMxH"), "MaxDraw": _first(raw, "MaxD", "BbMxD"),
         "MaxAway": _first(raw, "MaxA", "BbMxA"),
         "Over25": _first(raw, "B365>2.5"), "Under25": _first(raw, "B365<2.5"),
+        "HomeShots": _first(raw, "HS"), "AwayShots": _first(raw, "AS"),
+        "HomeTarget": _first(raw, "HST"), "AwayTarget": _first(raw, "AST"),
     })
     out = out.dropna(subset=["MatchDate", "FTHome", "FTAway"])
     out["FTResult"] = [("H" if h > a else "D" if h == a else "A") for h, a in zip(out.FTHome, out.FTAway)]

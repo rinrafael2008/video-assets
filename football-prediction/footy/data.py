@@ -12,10 +12,9 @@ import pandas as pd
 
 from footy import config
 
-# Only columns that are known BEFORE kickoff (odds) or that we need as the answer (goals).
-# We deliberately ignore shots, cards, corners, half-time scores and the dataset's
-# "cluster" columns: those describe the match itself, so using them would be cheating
-# (data leakage). We also recompute Elo and form ourselves, so we know exactly how
+# Only columns that are known BEFORE kickoff (odds), that we need as the answer (goals),
+# or shots, which features.py turns into averages of EARLIER matches. We ignore cards,
+# corners, half-time scores and the dataset's "cluster" columns. We also recompute Elo and form ourselves, so we know exactly how
 # they were built and that they only use earlier matches.
 KEEP_COLUMNS = [
     "Division", "MatchDate", "MatchTime", "HomeTeam", "AwayTeam",
@@ -23,6 +22,9 @@ KEEP_COLUMNS = [
     "OddHome", "OddDraw", "OddAway",     # Bet365 1X2 odds (one real bookmaker)
     "MaxHome", "MaxDraw", "MaxAway",     # best price across ~17 bookmakers (optimistic)
     "Over25", "Under25",                 # Bet365 over/under 2.5 goals odds
+    # Shots ARE match statistics. They are kept only so features.py can average each team's
+    # shots over its PREVIOUS matches; a match's own shots are never used to predict it.
+    "HomeShots", "AwayShots", "HomeTarget", "AwayTarget",
 ]
 ODDS_TRIPLES = [("OddHome", "OddDraw", "OddAway"), ("MaxHome", "MaxDraw", "MaxAway")]
 
@@ -57,6 +59,7 @@ def unify_team_spellings(df: pd.DataFrame) -> pd.DataFrame:
 
 def clean(raw: pd.DataFrame, divisions=None) -> pd.DataFrame:
     divisions = divisions or config.DIVISIONS
+    raw = raw.reindex(columns=list(dict.fromkeys(list(raw.columns) + KEEP_COLUMNS)))  # missing -> empty
     df = raw.loc[raw["Division"].isin(divisions), KEEP_COLUMNS].copy()
     df["MatchDate"] = pd.to_datetime(df["MatchDate"])
     df = df.dropna(subset=["FTHome", "FTAway"])           # need the final score

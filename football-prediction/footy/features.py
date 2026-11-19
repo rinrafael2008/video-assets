@@ -21,6 +21,7 @@ from footy import config
 from footy.elo import Elo
 
 FORM_WINDOW = 5
+SHOTS_WINDOW = 8          # shots are noisy per game, so average over more matches
 MAX_REST_DAYS = 30
 
 FEATURE_COLUMNS = [
@@ -32,13 +33,19 @@ FEATURE_COLUMNS = [
     "home_rest_days", "away_rest_days",
     "home_games_played", "away_games_played",  # how much history we have (capped at 10)
     "is_top_division",
+    # Shots: a better sign of how well a team really plays than goals, which are partly luck.
+    # Averages over each team's previous 8 matches (missing in leagues/seasons without shot data).
+    "home_shots_for", "home_shots_against", "home_sot_for", "home_sot_against",
+    "away_shots_for", "away_shots_against", "away_sot_for", "away_sot_against",
 ]
+SHOT_COLUMNS = FEATURE_COLUMNS[-8:]
 
 
 def build_features(matches: pd.DataFrame, elo: Elo | None = None) -> pd.DataFrame:
     """Return a copy of `matches` with FEATURE_COLUMNS added (one row per match)."""
     elo = elo or Elo()
     history = defaultdict(lambda: deque(maxlen=FORM_WINDOW))  # team -> (points, gf, ga)
+    shots = defaultdict(lambda: deque(maxlen=SHOTS_WINDOW))   # team -> (shots for/against, on target for/against)
     games_played = defaultdict(int)
     last_date: dict[str, pd.Timestamp] = {}
     rows = []
@@ -67,6 +74,10 @@ def build_features(matches: pd.DataFrame, elo: Elo | None = None) -> pd.DataFram
             else:
                 f[f"{side}_rest_days"] = MAX_REST_DAYS
             f[f"{side}_games_played"] = min(games_played[team], 10)
+            known = [x for x in shots[team] if not np.isnan(x).any()]
+            avg = np.mean(known, axis=0) if known else [np.nan] * 4
+            (f[f"{side}_shots_for"], f[f"{side}_shots_against"],
+             f[f"{side}_sot_for"], f[f"{side}_sot_against"]) = avg
         f["is_top_division"] = float(m.Division in config.TOP_DIVISIONS)
         rows.append(f)
 
@@ -78,6 +89,9 @@ def build_features(matches: pd.DataFrame, elo: Elo | None = None) -> pd.DataFram
         ap = 3 if ag > hg else (1 if hg == ag else 0)
         history[m.HomeTeam].append((hp, hg, ag))
         history[m.AwayTeam].append((ap, ag, hg))
+        hs, as_, ht, at = (float(getattr(m, c, np.nan)) for c in ("HomeShots", "AwayShots", "HomeTarget", "AwayTarget"))
+        shots[m.HomeTeam].append(np.array([hs, as_, ht, at]))
+        shots[m.AwayTeam].append(np.array([as_, hs, at, ht]))
         games_played[m.HomeTeam] += 1
         games_played[m.AwayTeam] += 1
         last_date[m.HomeTeam] = last_date[m.AwayTeam] = m.MatchDate

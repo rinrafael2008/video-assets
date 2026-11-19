@@ -19,7 +19,9 @@ from sklearn.linear_model import LogisticRegression, PoissonRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from footy.features import FEATURE_COLUMNS
+from footy.features import FEATURE_COLUMNS, SHOT_COLUMNS
+
+BASIC_FEATURES = [c for c in FEATURE_COLUMNS if c not in SHOT_COLUMNS]
 
 OUTCOMES = ["H", "D", "A"]   # column order of every probability array in this project
 
@@ -54,7 +56,8 @@ class SklearnOutcomeModel:
     def __init__(self, name, estimator, scale=True, features=FEATURE_COLUMNS):
         self.name = name
         self.features = list(features)
-        steps = [SimpleImputer(strategy="median")]
+        # add_indicator: also tell the model WHICH values were missing (e.g. no shot data)
+        steps = [SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True)]
         if scale:
             steps.append(StandardScaler())
         self.model = make_pipeline(*steps, estimator)
@@ -67,17 +70,32 @@ class SklearnOutcomeModel:
         return _predict_hda(self.model, df[self.features])
 
 
-def candidate_outcome_models(features=FEATURE_COLUMNS):
-    """A few reasonable settings. The validation set decides which one wins."""
-    return [
-        SklearnOutcomeModel("Logistic regression (C=0.1)", LogisticRegression(C=0.1, max_iter=2000),
-                            features=features),
-        SklearnOutcomeModel("Logistic regression (C=1.0)", LogisticRegression(C=1.0, max_iter=2000),
-                            features=features),
-        SklearnOutcomeModel("Gradient boosting (shallow)", HistGradientBoostingClassifier(
-            max_depth=3, learning_rate=0.03, max_iter=200, l2_regularization=1.0,
-            early_stopping=False, random_state=0), scale=False, features=features),
-    ]
+def candidate_outcome_models(features=None):
+    """A few reasonable settings. The validation set decides which one wins.
+
+    By default every model competes twice: with the shot features and without them.
+    Where a league has little shot history (e.g. Greece: only since 2017), the version
+    without shots usually wins validation, which is exactly what we want.
+    `features` = one fixed feature list instead (used for national teams).
+    """
+    variants = [("", list(features))] if features is not None else [("", BASIC_FEATURES), (" + shots", FEATURE_COLUMNS)]
+    out = []
+    for suffix, feats in variants:
+        out += [
+            SklearnOutcomeModel(f"Logistic regression (C=0.1){suffix}", LogisticRegression(C=0.1, max_iter=2000),
+                                features=feats),
+            SklearnOutcomeModel(f"Logistic regression (C=1.0){suffix}", LogisticRegression(C=1.0, max_iter=2000),
+                                features=feats),
+            SklearnOutcomeModel(f"Gradient boosting (shallow){suffix}", HistGradientBoostingClassifier(
+                max_depth=3, learning_rate=0.03, max_iter=200, l2_regularization=1.0,
+                early_stopping=False, random_state=0), scale=False, features=feats),
+        ]
+    return out
+
+
+def model_by_name(name: str):
+    """A fresh, unfitted copy of the candidate called `name`."""
+    return next(m for m in candidate_outcome_models() if m.name == name)
 
 
 class GoalsModel:
@@ -87,7 +105,7 @@ class GoalsModel:
     def __init__(self, alpha=1.0, features=FEATURE_COLUMNS):
         self.features = list(features)
         def pipe():
-            return make_pipeline(SimpleImputer(strategy="median"), StandardScaler(),
+            return make_pipeline(SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True), StandardScaler(),
                                  PoissonRegressor(alpha=alpha, max_iter=1000))
         self.home, self.away = pipe(), pipe()
 

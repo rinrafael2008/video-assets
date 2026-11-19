@@ -43,3 +43,14 @@ def test_unknown_team_gets_suggestion_and_case_is_fixed(matches):
 def test_stale_data_warning(matches):
     _, warnings = predict(matches, fixtures([["E0", "2012-01-01", "Team1", "Team2", 2, 3, 4, "", None, None]]))
     assert any("days before your first upcoming match" in w for w in warnings)
+
+
+def test_uses_the_model_that_won_validation_for_that_league(matches, tmp_path):
+    import json
+    fx = fixtures([["E0", "2009-08-01", "Team1", "Team2", 2.1, 3.3, 3.6, "", None, None]])
+    out, _ = predict(matches, fx, models_dir=tmp_path)                     # nothing saved -> safe default
+    assert out.model_used.iloc[0] == "Logistic regression (C=0.1)"
+    (tmp_path / "England").mkdir()
+    (tmp_path / "England" / "summary.json").write_text(json.dumps({"best_ml_model": "Logistic regression (C=1.0) + shots"}))
+    out, _ = predict(matches, fx, models_dir=tmp_path)
+    assert out.model_used.iloc[0] == "Logistic regression (C=1.0) + shots"

@@ -21,7 +21,7 @@ A small Python project that teaches you how to:
 4. [Step by step: how the system works](#4-step-by-step-how-the-system-works)
 5. [How we avoid cheating (data leakage)](#5-how-we-avoid-cheating-data-leakage)
 6. [Reading the results](#6-reading-the-results)
-7. [Results from the first run](#7-results-from-the-first-run)
+7. [Results](#7-results)
 8. [Limitations](#8-limitations-please-read)
 9. [Running the tests](#9-running-the-tests)
 10. [Ideas for next steps](#10-ideas-for-next-steps)
@@ -294,7 +294,7 @@ Football is very random. Even the bookmaker only reaches a log loss of about 1.0
 
 ---
 
-## 7. Results from the first run
+## 7. Results
 
 English Premier League + Championship. Test = 3,794 matches (2022/23 to September 2026), all with Bet365 odds.
 
@@ -303,19 +303,19 @@ English Premier League + Championship. Test = 3,794 matches (2022/23 to Septembe
 | Model | Log loss | Brier | Accuracy | Calibration error |
 |---|---|---|---|---|
 | Elo baseline | 1.0299 | 0.6184 | 48.8% | 0.015 |
-| Logistic regression (best on validation) | 1.0284 | 0.6174 | 48.4% | 0.014 |
-| Poisson goals model (H/D/A) | 1.0321 | 0.6199 | 48.2% | 0.016 |
+| Logistic regression + shots (best on validation) | 1.0222 | 0.6133 | 48.5% | 0.011 |
+| Poisson goals model (H/D/A) | 1.0239 | 0.6142 | 48.7% | 0.015 |
 | **Bookmaker, Bet365, margin removed** | **1.0080** | **0.6038** | **49.8%** | **0.006** |
 
-**Goals:** the Poisson model's average error is 0.96 home goals and 0.83 away goals. Simply guessing
-the league average gives 1.01 and 0.85. For over/under 2.5 goals, the model's Brier score is 0.248
+**Goals:** the Poisson model's average error is 0.95 home goals and 0.83 away goals. Simply guessing
+the league average gives 1.01 and 0.85. For over/under 2.5 goals, the model's Brier score is 0.247
 against the bookmaker's 0.243, so the bookmaker is better here too.
 
 **Hypothetical backtest:** every threshold lost money on the **validation** seasons (−6% to −11% ROI),
 so the system chose **"No bet"**. For information only, the same thresholds on the test seasons also
-lost money: −3% to −8% ROI over 1,100–3,250 bets, with drawdowns of 130–210 units. Every 95% interval
-includes zero, with low ends between −9% and −19% and high ends between +1% and +6%. Even at the best market price (which is unrealistic for one bettor), ROI was
-+0.9%, with an interval of −5.4% to +7.3%: indistinguishable from zero.
+lost money: −3.5% to −11% ROI over 830–3,070 bets, with drawdowns of 120–220 units. Every 95% interval
+includes zero, with low ends between −9% and −23% and high ends between +2% and +4%. Even at the best
+market price (which is unrealistic for one bettor), ROI was −0.1%, with an interval of −6.1% to +6.1%.
 
 **Plain-English conclusion:** the models learn real patterns. They clearly beat the "know nothing"
 guess (1.0986). But the bookmaker's prices already contain everything our simple features know, and
@@ -332,28 +332,54 @@ Same rules for every league: train up to 2017/18, choose on 2018/19–2021/22, t
 
 | League | Test matches | Elo log loss | Model log loss | Bookmaker log loss | Bookmaker margin | Chosen on validation | Test ROI at EV ≥ 5% (95% interval) |
 |---|---|---|---|---|---|---|---|
-| England | 3,794 | 1.0299 | 1.0284 | **1.0080** | 5.5% | NO BET | −5.5% (−12.2% to 1.1%) |
-| Spain | 3,432 | 1.0213 | 1.0198 | **1.0007** | 6.1% | NO BET | −12.5% (−18.5% to −6.7%) |
-| Germany | 2,484 | 1.0243 | 1.0230 | **1.0025** | 5.5% | NO BET | −5.1% (−12.8% to 2.5%) |
-| Italy | 3,079 | 1.0332 | 1.0313 | **1.0086** | 5.9% | NO BET | −11.3% (−17.5% to −5.2%) |
-| France | 2,721 | 1.0429 | 1.0408 | **1.0148** | 6.4% | NO BET | −13.4% (−20.7% to −6.1%) |
-| Netherlands | 1,257 | 0.9513 | 0.9485 | **0.9395** | 5.7% | NO BET | +3.6% (−8.7% to 16.0%) |
-| Portugal | 1,257 | 0.9225 | 0.9237 | **0.9083** | 6.4% | NO BET | −14.1% (−25.3% to −3.1%) |
-| Belgium | 1,277 | 1.0019 | 1.0037 | **0.9893** | 6.8% | NO BET | −12.9% (−23.0% to −2.0%) |
-| Turkey | 1,340 | 0.9811 | 0.9832 | **0.9552** | 6.7% | NO BET | −20.7% (−30.9% to −11.0%) |
-| Greece | 405 | 0.9693 | 0.9663 | **0.9406** | 7.6% | NO BET | −12.3% (−30.6% to 7.6%) |
-| Scotland | 1,628 | 1.0063 | 1.0098 | **0.9854** | 7.6% | EV ≥ 15% (see below) | −23.3% (−32.7% to −13.5%) |
-| All pooled | 22,674 | 1.0127 | 1.0110 | **0.9909** | 6.1% | NO BET | −11.1% (−13.5% to −8.5%) |
+| England | 3,794 | 1.0299 | 1.0222 | **1.0080** | 5.5% | NO BET | −3.5% (−10.9% to 3.8%) |
+| Spain | 3,432 | 1.0213 | 1.0160 | **1.0007** | 6.1% | NO BET | −9.6% (−15.4% to −3.6%) |
+| Germany | 2,484 | 1.0243 | 1.0186 | **1.0025** | 5.5% | EV ≥ 15% (see below) | −3.2% (−11.0% to 4.8%) |
+| Italy | 3,079 | 1.0332 | 1.0260 | **1.0086** | 5.9% | NO BET | −5.3% (−11.6% to 0.9%) |
+| France | 2,721 | 1.0429 | 1.0324 | **1.0148** | 6.4% | NO BET | −14.2% (−21.4% to −6.8%) |
+| Netherlands | 1,257 | 0.9513 | 0.9489 | **0.9395** | 5.7% | NO BET | +4.5% (−7.1% to 16.6%) |
+| Portugal | 1,257 | 0.9225 | 0.9236 | **0.9083** | 6.4% | NO BET | −14.2% (−25.0% to −2.8%) |
+| Belgium | 1,277 | 1.0019 | 1.0038 | **0.9893** | 6.8% | NO BET | −12.6% (−22.4% to −2.2%) |
+| Turkey | 1,340 | 0.9811 | 0.9843 | **0.9552** | 6.7% | NO BET | −21.2% (−30.5% to −11.3%) |
+| Greece | 405 | 0.9693 | 0.9678 | **0.9406** | 7.6% | NO BET | −14.5% (−32.5% to 4.4%) |
+| Scotland | 1,628 | 1.0063 | 1.0120 | **0.9854** | 7.6% | NO BET | −21.7% (−31.3% to −12.2%) |
+| All pooled | 22,674 | 1.0127 | 1.0052 | **0.9909** | 6.1% | NO BET | −7.6% (−10.3% to −5.0%) |
 
 What this shows:
 - The **bookmaker is better in every league**. Smaller, less-watched leagues (Greece, Turkey, Scotland)
   are *not* easier. They have higher margins (6.7–7.6%), and our model is just as far behind.
-- **Scotland is a warning example.** On validation, EV ≥ 15% made +0.05%, which was just enough to pass
-  the rule, so the system chose it. On the test seasons it lost **23%** over 527 bets. A strategy that
-  only *just* broke even in the past is usually luck. We did **not** change the rule after seeing this,
-  because that would have been cheating with the test data.
+- **Germany is a warning example.** On validation, EV ≥ 15% made +3.5% over 917 bets, but with a 95%
+  interval of −8% to +16%: that could easily be luck. The system chose it anyway, because the rule only
+  asks for a profit over at least 100 bets. On the test seasons it lost **2.9%** over 726 bets. (Before
+  the shots features, Scotland did the same: +0.05% on validation, then −21% on test.) We did **not**
+  change the rule after seeing this, because that would be cheating with the test data. Instead,
+  `footy.today` only says PLAY when a rule *also* made money on the unseen test seasons.
 - **Greece:** the dataset is missing the 2011/12, 2022/23 and 2023/24 seasons, which is why its test set
   is small (405 matches).
+
+### Improvement 1: shot features (what changed and what it bought)
+
+Shots and shots on target describe how well a team really plays better than goals, which are partly
+luck. The model now also gets each team's average shots for and against, and shots on target for and
+against, over its **previous 8 matches**. A match's own shots are never used: a test checks this.
+
+Not every league has shot data from the start (Greece, Netherlands, Portugal, Belgium and Turkey only from
+2017). So every model competes in two versions, with and without shots, and **the validation seasons
+decide per league**. Gap to the bookmaker's log loss on the test seasons:
+
+| League | Before | After | Gap closed |
+|---|---|---|---|
+| England | 0.0204 | 0.0142 | 30% |
+| Spain | 0.0191 | 0.0153 | 20% |
+| Germany | 0.0205 | 0.0161 | 21% |
+| Italy | 0.0227 | 0.0174 | 23% |
+| France | 0.0260 | 0.0176 | 32% |
+| All pooled | 0.0201 | 0.0143 | 29% |
+| NL, PT, BE, TR, GR, SCO | | | ≈0% (validation chose *no shots*: too little history) |
+
+A real improvement, but not enough: the model is still behind the bookmaker in every league, and no
+betting rule survived the unseen seasons. Once `python -m footy.update` adds more seasons with shots,
+re-running `python -m footy.study` may let the smaller leagues use them too.
 
 ### 7c. National teams (`python -m footy.international`)
 
@@ -484,8 +510,9 @@ Options: `--date 2026-11-22` (another day), `--leagues G1 E0` (only some leagues
 - **National teams have no odds**, so their results only measure prediction quality, not betting value.
   Team names in that dataset change over time (e.g. "Czechoslovakia"); they are treated as separate teams.
 - **Upcoming predictions** are only as good as the ratings. If you don't add recent results, the ratings
-  are frozen at early September 2026. The model is always a logistic regression (C = 0.1), because a
-  logistic regression won validation in every league; the C setting made almost no difference.
+  are frozen at early September 2026. Each country gets its own model, the one that won validation for that
+  league in `python -m footy.study` (with or without shots). Run the study first; otherwise a plain logistic
+  regression without shots is used.
 - **The Football-Data.co.uk updater** was written from the site's published column guide, and tested on
   made-up files in that format. This test computer can't reach the site, so it hasn't run against the real
   files yet. Check the "Saved ... extra matches" message after your first run. Team-name translation needs
@@ -507,14 +534,14 @@ Options: `--date 2026-11-22` (another day), `--leagues G1 E0` (only some leagues
 ## 9. Running the tests
 
 ```powershell
-python -m pytest            # all 63 tests, about 10 seconds, no internet needed
+python -m pytest            # all 66 tests, about 15 seconds, no internet needed
 python -m pytest -v         # list each test by name
 ```
 
 The tests use small, **made-up** leagues, so they don't need the real data. They check:
 - **Elo**: points are conserved, home advantage works, and the end-of-season pull towards the average works.
 - **No leakage**: changing a result never changes earlier features, deleting future matches never
-  changes past features, and the split never overlaps.
+  changes past features, a match's own shots never reach its features, and the split never overlaps.
 - **Odds**: margin removal makes the probabilities add up to 1, keeps the favourite first, and shrinks
   long shots more with the power method.
 - **Metrics**: perfect and "know nothing" predictions get the right scores, and a forecaster that is
