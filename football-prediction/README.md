@@ -381,6 +381,42 @@ A real improvement, but not enough: the model is still behind the bookmaker in e
 betting rule survived the unseen seasons. Once `python -m footy.update` adds more seasons with shots,
 re-running `python -m footy.study` may let the smaller leagues use them too.
 
+### Improvement 2: the best price (what it bought)
+
+The price you bet at matters as much as the prediction. OPAP's coupon takes 6–11% per match; the best
+price per outcome across several bookmakers usually takes only 2–4%.
+
+**In `footy.today`:** for every coupon match, the program now opens the match's Flashscore odds page and
+takes the **best price per outcome** among OPAP's coupon and the bookmakers listed in `MY_BOOKMAKERS` in
+`footy/config.py`: Stoiximan, Novibet, bet365, Bwin, Interwetten, PameStoixima, Winmasters, Betsson,
+Elabet and Fonbet by default. **Edit that list to the bookmakers where you actually have an account.**
+Expected values and verdicts use those best prices. Example (21/11/2026, real odds):
+
+```
+[574] 19:30  Καλαμάτα - ΑΕΚ   (ΕΛΛΑΔΑ: Σούπερ Λιγκ 1)
+      OPAP odds   1 8.00  X 5.00  2 1.35   (margin 6.6%)
+      best price  1 8.25 (Stoiximan)  X 5.25 (PameStoixima)  2 1.38 (Novibet)   (margin 3.6%)
+```
+
+This adds one odds page per match (a few minutes for a full Saturday). `--opap-only` skips it.
+
+**In the backtests:** the dataset has the best price across ~17 bookmakers for each match. That's an
+*optimistic* upper bound: one person can't hold accounts everywhere or always catch the top price. Even
+then, with the betting threshold chosen on validation as always:
+
+| League | Bet365 margin | Best-price margin | Chosen on validation (best price) | Result on unseen test seasons |
+|---|---|---|---|---|
+| England, Spain, Italy, NL, PT, BE, GR, pooled | 5.5–7.6% | 1.5–3.4% | NO BET | – |
+| Germany | 5.5% | 1.7% | EV ≥ 20% | +2.0% (729 bets, 95% interval −11% to +16%) |
+| France | 6.4% | 1.8% | EV ≥ 20% | −12.1% (803 bets) |
+| Turkey | 6.7% | 1.8% | EV ≥ 20% | −21.7% (436 bets) |
+| Scotland | 7.6% | 2.9% | EV ≥ 15% | −14.3% (746 bets) |
+
+**Conclusion:** the best price cuts the bookmaker's cut by about two-thirds, which makes any bet much
+cheaper. But it doesn't create an edge by itself: even at the optimistic best prices, nothing is reliably
+profitable on unseen seasons. Germany's +2.0% is well within luck. So the verdict rules stay the same, and
+are still based on Bet365 prices, which one person really could get.
+
 ### 7c. National teams (`python -m footy.international`)
 
 Train 1990–2013, validation 2014–2018, test 2019 to November 2026 (7,874 matches). Earlier matches back

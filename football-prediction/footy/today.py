@@ -5,8 +5,10 @@
    the model was never tested on them, so it has no business predicting them).
 3. Reads Flashscore for those leagues: recent results (to bring ratings up to date)
    and the fixture list (to translate the Greek team names safely).
-4. Predicts every match and compares with OPAP's odds (margin removed).
-5. Gives a verdict per coupon CODE, using the evidence from the backtests:
+4. Finds the best price per outcome: OPAP's coupon price vs every bookmaker in MY_BOOKMAKERS
+   (config.py) on each match's Flashscore odds page. Typical margin: OPAP 6-11%, best price 2-4%.
+5. Predicts every match and compares with the best prices (margin removed).
+6. Gives a verdict per coupon CODE, using the evidence from the backtests:
    a league is only "playable" if its betting rule made money on BOTH the validation
    seasons AND the unseen test seasons, with at least 95% of bootstrap resamples positive.
    So far, no league passes. The usual verdict is therefore NO BET, and that is the honest answer.
@@ -14,7 +16,7 @@
 Personal use only (agones.gr and Flashscore). Research only: this never places a bet.
 Before all that it refreshes the current season from Football-Data.co.uk (footy.update),
 so only the last few days need Flashscore.
-Options:  --date 2026-11-22   --leagues G1 E0   --no-flashscore   --no-update
+Options:  --date 2026-11-22   --leagues G1 E0   --opap-only   --no-flashscore   --no-update
 """
 from __future__ import annotations
 
@@ -29,6 +31,36 @@ from footy import agones, config, data
 from footy.upcoming import predict
 
 COUNTRY_OF = {d: c for c, divs in config.LEAGUE_GROUPS.items() for d in divs}
+OPAP = "OPAP coupon"
+
+
+def best_prices(rows: list[dict], allowed: list[str]) -> tuple[list[float], list[str]]:
+    """Best price per outcome (1, X, 2) among the allowed bookmakers.
+    rows: [{"bookmaker": "Stoiximan.gr", "odds": ["2.10", "3.40", "3.60"]}, ...]."""
+    from footy.flashscore import to_float
+    best, who = [None, None, None], ["", "", ""]
+    for r in rows:
+        name = str(r.get("bookmaker", ""))
+        if not any(a.lower() in name.lower() for a in allowed):
+            continue
+        for k, o in enumerate(list(r.get("odds", []))[:3]):
+            v = to_float(o)
+            if v and (best[k] is None or v > best[k]):
+                best[k], who[k] = v, name
+    return best, who
+
+
+def flashscore_odds(urls: list[str]) -> dict:
+    """{match url: rows of bookmaker odds} from each match's Flashscore odds page."""
+    from footy import flashscore as fs
+    reader = fs.Reader()
+    out = {}
+    try:
+        for u in urls:
+            out[u] = reader.odds(u)["rows"]
+    finally:
+        reader.close()
+    return out
 OUTCOME_NAME = {"H": "1", "D": "X", "A": "2"}
 
 
@@ -48,6 +80,10 @@ def league_evidence(division: str, leagues_dir=None) -> tuple[bool, float | None
         roi = chosen.roi.iloc[0] if len(chosen) else float("nan")
         return False, t, f"rule passed validation but failed on unseen seasons (ROI {roi:+.1%})"
     return True, t, f"rule EV >= {t:.0%} profitable on validation and test"
+
+
+def short(bookmaker: str) -> str:
+    return str(bookmaker).replace(".gr", "").replace(OPAP, "OPAP") or "-"
 
 
 def decide(pred: pd.DataFrame, leagues_dir=None) -> pd.DataFrame:
@@ -95,7 +131,8 @@ def flashscore_tables(divisions, day):
 
 
 def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_flashscore=None,
-        history_raw=None, leagues_dir=None, aliases=None, verbose=True):
+        history_raw=None, leagues_dir=None, aliases=None, verbose=True, compare_prices=True, get_odds=None,
+        my_bookmakers=None):
     say = print if verbose else (lambda *a, **k: None)
     fetch_coupon = fetch_coupon or (lambda d: agones.parse_coupon(agones.fetch(d)))
     get_flashscore = get_flashscore or flashscore_tables
@@ -132,11 +169,26 @@ def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_fla
         say("\nCould not match any coupon match to a known fixture, so no predictions. VERDICT: NO BET.")
         return pd.DataFrame()
 
-    rows = []
+    # Best price per outcome: OPAP's coupon price plus every bookmaker you use on Flashscore.
+    allowed = list(my_bookmakers or config.MY_BOOKMAKERS) + [OPAP]
+    other_odds = {}
+    if compare_prices and use_flashscore:
+        urls = [fixtures.loc[j].get("FlashscoreURL") for j in links.values()]
+        urls = [u for u in urls if isinstance(u, str) and u]
+        if urls:
+            say(f"Comparing prices: reading {len(urls)} odds pages on Flashscore (slowly)...")
+            other_odds = (get_odds or flashscore_odds)(urls)
+    rows, prices = [], {}
     for i, j in links.items():
         c, f = covered.loc[i], fixtures.loc[j]
+        quotes = [{"bookmaker": OPAP, "odds": [c.odd_1, c.odd_X, c.odd_2]}] + other_odds.get(f.get("FlashscoreURL"), [])
+        best, who = best_prices(quotes, allowed)
+        prices[str(c.code)] = {"opap_1": c.odd_1, "opap_X": c.odd_X, "opap_2": c.odd_2,
+                               "best_by_1": who[0], "best_by_X": who[1], "best_by_2": who[2],
+                               "n_bookmakers": sum(any(a.lower() in q["bookmaker"].lower() for a in allowed)
+                                                   for q in quotes)}
         rows.append({"Division": c.division, "MatchDate": pd.Timestamp(day).date(), "HomeTeam": f.HomeTeam,
-                     "AwayTeam": f.AwayTeam, "OddHome": c.odd_1, "OddDraw": c.odd_X, "OddAway": c.odd_2,
+                     "AwayTeam": f.AwayTeam, "OddHome": best[0], "OddDraw": best[1], "OddAway": best[2],
                      "Bookmaker": f"OPAP code {c.code}"})
     results = fs_table[fs_table.FTHome.notna()] if "FTHome" in fs_table else pd.DataFrame()
     pred, w = predict(history_raw if history_raw is not None else data.load_raw(),
@@ -145,7 +197,8 @@ def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_fla
     pred = decide(pred, leagues_dir)
     pred["code"] = pred.Bookmaker.str.replace("OPAP code ", "", regex=False)
     meta = covered.set_index(covered.code.astype(str))[["time", "competition", "home_gr", "away_gr"]]
-    pred = pred.join(meta, on="code")
+    pred = pred.join(meta, on="code").join(pd.DataFrame(prices).T, on="code")
+    pred["opap_margin"] = 1 / pred.opap_1.astype(float) + 1 / pred.opap_X.astype(float) + 1 / pred.opap_2.astype(float) - 1
     pred = pred.sort_values(["time", "code"]).reset_index(drop=True)
 
     for w in warnings:
@@ -153,16 +206,23 @@ def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_fla
     say("")
     for r in pred.itertuples():
         say(f"[{r.code}] {r.time}  {r.home_gr} - {r.away_gr}   ({r.competition})")
-        say(f"      OPAP odds   1 {r.OddHome:.2f}  X {r.OddDraw:.2f}  2 {r.OddAway:.2f}   (margin {r.bookmaker_margin:.1%})")
-        say(f"      OPAP chance 1 {r.book_pH:.0%}  X {r.book_pD:.0%}  2 {r.book_pA:.0%}")
+        say(f"      OPAP odds   1 {float(r.opap_1):.2f}  X {float(r.opap_X):.2f}  2 {float(r.opap_2):.2f}   "
+            f"(margin {r.opap_margin:.1%})")
+        if any(b and b != OPAP for b in (r.best_by_1, r.best_by_X, r.best_by_2)):
+            say(f"      best price  1 {r.OddHome:.2f} ({short(r.best_by_1)})  X {r.OddDraw:.2f} ({short(r.best_by_X)})  "
+                f"2 {r.OddAway:.2f} ({short(r.best_by_2)})   (margin {r.bookmaker_margin:.1%})")
+        say(f"      market      1 {r.book_pH:.0%}  X {r.book_pD:.0%}  2 {r.book_pA:.0%}   (chances, margin removed)")
         say(f"      model       1 {r.model_pH:.0%}  X {r.model_pD:.0%}  2 {r.model_pA:.0%}   "
             f"expected goals {r.exp_home_goals:.1f}-{r.exp_away_goals:.1f}")
         say(f"      -> {r.verdict}   ({r.reason})")
     if len(skipped):
         say(f"\nSkipped (team names not matched safely): " +
             ", ".join(f"[{c.code}] {c.home_gr}-{c.away_gr}" for c in skipped.itertuples()))
+    if compare_prices and use_flashscore and len(pred):
+        say(f"\nAverage margin: OPAP {pred.opap_margin.mean():.1%}, best price across your bookmakers "
+            f"{pred.bookmaker_margin.mean():.1%}. (Edit MY_BOOKMAKERS in footy/config.py to match your accounts.)")
     n_play = int(pred.verdict.str.startswith("PLAY").sum())
-    say("\n" + ("VERDICT: NO BET today. The model has no proven edge over OPAP in these leagues."
+    say("\n" + ("VERDICT: NO BET today. The model has no proven edge over the bookmakers in these leagues."
                 if n_play == 0 else f"VERDICT: {n_play} single(s) marked PLAY above. Flat 1 unit each, no doubles/trebles."))
     out = config.OUTPUT_DIR / f"today_{day.isoformat()}.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -177,6 +237,7 @@ def main():
     parser.add_argument("--leagues", nargs="+", help="only these league codes, e.g. G1 E0")
     parser.add_argument("--no-flashscore", action="store_true", help="skip Flashscore (not recommended)")
     parser.add_argument("--no-update", action="store_true", help="skip the Football-Data.co.uk refresh")
+    parser.add_argument("--opap-only", action="store_true", help="don't compare prices (faster: no odds pages)")
     args = parser.parse_args()
     if not args.no_update:
         from footy import update
@@ -188,7 +249,8 @@ def main():
                 add.to_csv(update.UPDATE_CSV, index=False)
         except Exception as e:      # no internet, site down, ...: carry on with what we have
             print(f"WARNING: Football-Data.co.uk update failed ({e}); continuing with saved data.")
-    run(date.fromisoformat(args.date), args.leagues, use_flashscore=not args.no_flashscore)
+    run(date.fromisoformat(args.date), args.leagues, use_flashscore=not args.no_flashscore,
+        compare_prices=not args.opap_only)
 
 
 if __name__ == "__main__":

@@ -39,6 +39,11 @@ def comparison_row(name: str, out_dir) -> dict:
         "info_roi_ev5": None if info5 is None else info5["roi"],
         "info_roi_ev5_ci": None if info5 is None else f"{info5['roi_ci_low']:.1%} to {info5['roi_ci_high']:.1%}",
         "info_bets_ev5": None if info5 is None else int(info5["bets"]),
+        "best_price_margin": s.get("mean_best_price_overround", float("nan")) - 1,
+        "best_price_chosen_on_validation": (("NO BET" if s.get("best_price_threshold") is None or
+                                             pd.isna(s.get("best_price_threshold")) else f"EV >= {s['best_price_threshold']:.0%}")),
+        "best_price_test_roi": next((r.roi for r in b.reset_index().itertuples()
+                                     if r.strategy.startswith("[optimistic] Best market price, chosen")), None),
     }
 
 

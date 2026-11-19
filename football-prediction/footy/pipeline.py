@@ -117,12 +117,21 @@ def run(matches: pd.DataFrame, out_dir=config.OUTPUT_DIR, verbose=True,
     for t in config.EDGE_THRESHOLDS:
         rows.append(bt.summarise(bt.run_backtest(p_ml[has_odds], t_bet365, yo, t),
                                  f"[info] EV >= {t:.0%} (Bet365)"))
+    # Best market price (max over ~17 bookmakers): an OPTIMISTIC upper bound - one bettor can't
+    # get all of these. Its threshold is chosen on validation too, never on test.
+    v_has_max = v_has & valid[MAXODDS].notna().all(axis=1).to_numpy()
     t_has_max = t_odds[MAXODDS].notna().all(axis=1).to_numpy()
-    if t_has_max.any():
-        t0 = threshold if threshold is not None else 0.05
-        rows.append(bt.summarise(bt.run_backtest(p_ml[has_odds][t_has_max], t_odds[t_has_max][MAXODDS].to_numpy(float),
-                                                 yo[t_has_max], t0),
-                                 f"[optimistic] EV >= {t0:.0%} at BEST market price"))
+    best_threshold = None
+    if v_has_max.sum() and t_has_max.any():
+        best_threshold, _ = bt.choose_threshold(valid_probs_ml[v_has_max], valid[v_has_max][MAXODDS].to_numpy(float),
+                                                y_va[v_has_max])
+        if best_threshold is None:
+            rows.append(bt.summarise(pd.DataFrame(columns=["profit", "won", "odds", "cumulative_profit"]),
+                                     "[optimistic] Best market price: validation chose NO BET"))
+        else:
+            rows.append(bt.summarise(bt.run_backtest(p_ml[has_odds][t_has_max], t_odds[t_has_max][MAXODDS].to_numpy(float),
+                                                     yo[t_has_max], best_threshold),
+                                     f"[optimistic] Best market price, chosen on validation: EV >= {best_threshold:.0%}"))
     backtest_table = pd.DataFrame(rows)
     say(backtest_table[["strategy", "bets", "roi", "roi_ci_low", "roi_ci_high", "max_drawdown"]]
         .round(3).to_string(index=False))
@@ -162,6 +171,8 @@ def run(matches: pd.DataFrame, out_dir=config.OUTPUT_DIR, verbose=True,
         "n_test_with_odds": int(has_odds.sum()),
         "best_ml_model": ml_model.name,
         "chosen_threshold": threshold,
+        "best_price_threshold": best_threshold,
+        "mean_best_price_overround": float(np.nanmean((1 / t_odds[MAXODDS].to_numpy(float)).sum(axis=1))),
         "recommendation": ("NO BET - no threshold was profitable with enough bets on validation"
                            if threshold is None else f"Research only: EV >= {threshold:.0%}"),
         "mean_bookmaker_overround": float(np.nanmean(preds.bookmaker_overround)),

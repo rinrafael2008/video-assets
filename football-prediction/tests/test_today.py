@@ -108,3 +108,33 @@ def test_run_with_no_studied_leagues_is_no_bet(capsys):
     c = coupon_for(date(2026, 11, 19)).assign(division=None)
     out = today.run(date(2026, 11, 19), fetch_coupon=lambda d: c, get_flashscore=fake_flashscore)
     assert out.empty and "NO BET" in capsys.readouterr().out
+
+
+def test_best_prices_only_from_your_bookmakers():
+    rows = [{"bookmaker": "OPAP coupon", "odds": [2.0, 3.0, 3.5]},
+            {"bookmaker": "Stoiximan.gr", "odds": ["2.20", "3.10", "3.40"]},
+            {"bookmaker": "Novibet", "odds": ["2.10", "3.30", "-"]},
+            {"bookmaker": "Pinnacle", "odds": ["2.50", "3.60", "4.00"]}]          # not one of "your" bookmakers
+    best, who = today.best_prices(rows, ["Stoiximan", "Novibet", "OPAP coupon"])
+    assert best == [2.2, 3.3, 3.5] and who == ["Stoiximan.gr", "Novibet", "OPAP coupon"]
+
+
+def test_run_uses_best_price_for_value_and_keeps_opap_price(tmp_path, monkeypatch, matches):
+    monkeypatch.setattr("footy.config.OUTPUT_DIR", tmp_path)
+    write_league(tmp_path / "leagues" / "England", None, 0, 0)
+
+    def flashscore_with_url(divisions, day):
+        t, p = fake_flashscore(divisions, day)
+        return t.assign(FlashscoreURL="https://fs/match/1"), p
+
+    odds_pages = {"https://fs/match/1": [{"bookmaker": "Stoiximan.gr", "odds": ["3.30", "3.60", "2.50"]},
+                                         {"bookmaker": "Unknown Bet", "odds": ["9.00", "9.00", "9.00"]}]}
+    out = today.run(date(2009, 8, 1), fetch_coupon=coupon_for, get_flashscore=flashscore_with_url, history_raw=matches,
+                    leagues_dir=tmp_path / "leagues", aliases={"Ομάδα Ένα": "Team1", "Ομάδα Δύο": "Team2"},
+                    verbose=False, get_odds=lambda urls: {u: odds_pages[u] for u in urls},
+                    my_bookmakers=["Stoiximan"])
+    r = out.iloc[0]
+    assert (r.OddHome, r.OddDraw, r.OddAway) == (3.3, 3.6, 2.5)          # coupon had 3.0 / 3.4 / 2.4
+    assert r.best_by_1 == "Stoiximan.gr" and float(r.opap_1) == 3.0
+    assert r.bookmaker_margin < r.opap_margin
+    assert abs(r.ev_H - (r.model_pH * 3.3 - 1)) < 1e-9

@@ -51,6 +51,13 @@ MIN_ODDS, MAX_ODDS = 1.01, 10.0
 BOOTSTRAP_SAMPLES = 2000
 RANDOM_SEED = 42
 
+# ---- Bookmakers you can bet with (used by footy.today to find the best price) ----------
+# Names as Flashscore shows them (matched by "contains", capitals ignored). Keep only the ones
+# where YOU have an account: a better price elsewhere is no use if you can't bet there.
+# OPAP's coupon price (from agones.gr) is always included.
+MY_BOOKMAKERS = ["Stoiximan", "Novibet", "bet365", "Bwin", "Interwetten", "PameStoixima",
+                 "Winmasters", "Betsson", "Elabet", "Fonbet"]
+
 # ---- National teams (python -m footy.international) --------------------------------
 # Dataset: "International football results from 1872" by Mart Jürisoo, CC0 (public domain).
 INTL_DATA_URL = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
