@@ -43,7 +43,10 @@ Attribution: "Club Football Match Data" © 2025 xgabora, MIT licence. Source dat
 
 # Stoiximan, Flashscore and other betting/score sites
 
-This project does **not** scrape or call these sites. Flashscore's terms permit personal use only and
-forbid scraping its content without consent. Bookmakers such as Stoiximan do not offer a licence to reuse
-their odds. If you type odds you personally see into `my_fixtures.csv` for your own research, that stays
-on your computer and is not redistributed. Do not publish or share files of copied odds.
+These sites give no licence to reuse their data, and Flashscore's terms (personal use only) forbid
+scraping. **They are never used to train or evaluate the models.**
+
+At the user's explicit request, for private personal use only, `footy/flashscore.py` can read
+upcoming fixtures, the odds Flashscore displays (including Stoiximan.gr when viewed from Greece) and
+recent results. It reads a few pages slowly and saves them only to the git-ignored `outputs/` folder.
+Using it is your own decision and responsibility. Do not publish, share or sell anything it collects.

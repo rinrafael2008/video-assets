@@ -39,11 +39,28 @@ def season_of(dates: pd.Series) -> pd.Series:
     return np.where(dates.dt.month >= 7, dates.dt.year, dates.dt.year - 1).astype(int)
 
 
+def unify_team_spellings(df: pd.DataFrame) -> pd.DataFrame:
+    """The dataset sometimes spells one club two ways ("Nott'm Forest" / "Nottm Forest").
+    Two spellings that differ only in punctuation, spaces or capitals are the same club,
+    so we rename all of them to the most common spelling. Otherwise Elo would treat
+    them as two different teams."""
+    names = pd.concat([df.HomeTeam, df.AwayTeam]).value_counts()
+    key = names.index.str.lower().str.replace(r"[^a-z0-9]", "", regex=True)
+    canonical = {}
+    for k, group in pd.Series(names.index, index=key).groupby(level=0):
+        best = group.iloc[0]                        # value_counts order: most common first
+        canonical.update({name: best for name in group})
+    df["HomeTeam"] = df.HomeTeam.map(canonical)
+    df["AwayTeam"] = df.AwayTeam.map(canonical)
+    return df
+
+
 def clean(raw: pd.DataFrame, divisions=None) -> pd.DataFrame:
     divisions = divisions or config.DIVISIONS
     df = raw.loc[raw["Division"].isin(divisions), KEEP_COLUMNS].copy()
     df["MatchDate"] = pd.to_datetime(df["MatchDate"])
     df = df.dropna(subset=["FTHome", "FTAway"])           # need the final score
+    df = unify_team_spellings(df)
     df["FTHome"] = df["FTHome"].astype(int)
     df["FTAway"] = df["FTAway"].astype(int)
     df["FTResult"] = np.select(

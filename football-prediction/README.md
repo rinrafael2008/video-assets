@@ -72,6 +72,11 @@ python -m footy.study                          # every main league + one pooled 
 python -m footy.international --download       # national teams (downloads ~4 MB the first time)
 copy fixtures_template.csv my_fixtures.csv     # then type in odds you see, e.g. on Stoiximan
 python -m footy.upcoming my_fixtures.csv       # predictions for upcoming matches vs your odds
+
+# OR let it read fixtures, Stoiximan odds and recent results from Flashscore (personal use, section 7e)
+python -m playwright install chromium          # once: downloads the browser it uses (~150 MB)
+python -m footy.flashscore --leagues G1 --bookmaker Stoiximan
+python -m footy.upcoming outputs\flashscore_fixtures.csv
 ```
 
 In the dashboard, use the **"Results to show"** menu on the left to switch between leagues and national teams.
@@ -104,7 +109,8 @@ football-prediction/
 │   ├── pipeline.py        runs everything in order, writes outputs/
 │   ├── study.py           runs the pipeline for every main league + a pooled model
 │   ├── international.py   national-team version (neutral venues, match importance)
-│   └── upcoming.py        predictions for upcoming matches vs odds you type in
+│   ├── upcoming.py        predictions for upcoming matches vs odds you type in
+│   └── flashscore.py      personal-use reader: Flashscore fixtures, odds and recent results
 ├── dashboard.py           local Streamlit dashboard (only reads outputs/)
 ├── tests/                 automated tests (use small fake data, no download needed)
 ├── fixtures_template.csv  example file for upcoming matches and your own odds
@@ -135,12 +141,12 @@ By default we use the **English Premier League (E0)** and the **Championship (E1
 **National teams** use a second dataset: *International football results from 1872* by Mart Jürisoo.
 It is **CC0 (public domain)**, so you can use it for anything. It has about 50,000 matches, but **no odds**.
 
-**Why not Stoiximan or Flashscore?** Flashscore's terms allow personal use only and forbid scraping.
-Bookmakers such as Stoiximan don't give a licence to copy their odds either. So this project never
-downloads from them automatically. Instead, you can **read the odds in the app yourself and type them
-into a CSV file** (section 7d). That is ordinary personal research. Pre-match information such as team
-news or line-ups can't be added automatically for the same reason. A paid, licensed data API with its
-own key would be the legitimate route (see next steps).
+**Flashscore and Stoiximan.** Neither gives a licence to reuse its data, and Flashscore's terms forbid
+scraping. Because of that, they are **never used to train or test the models**. You chose to use
+Flashscore for your own private use, so there is an **optional** reader (section 7e). It reads upcoming
+fixtures, the odds Flashscore shows (in Greece this includes Stoiximan.gr), and recent results, slowly
+and a few pages at a time. Everything it collects stays on your computer. Don't share or publish it.
+You can also type odds in by hand instead (section 7d).
 
 ---
 
@@ -270,9 +276,9 @@ English Premier League + Championship. Test = 3,794 matches (2022/23 to Septembe
 
 | Model | Log loss | Brier | Accuracy | Calibration error |
 |---|---|---|---|---|
-| Elo baseline | 1.0306 | 0.6188 | 48.7% | 0.016 |
-| Logistic regression (best on validation) | 1.0290 | 0.6178 | 48.2% | 0.015 |
-| Poisson goals model (H/D/A) | 1.0324 | 0.6201 | 48.2% | 0.017 |
+| Elo baseline | 1.0299 | 0.6184 | 48.8% | 0.015 |
+| Logistic regression (best on validation) | 1.0284 | 0.6174 | 48.4% | 0.014 |
+| Poisson goals model (H/D/A) | 1.0321 | 0.6199 | 48.2% | 0.016 |
 | **Bookmaker, Bet365, margin removed** | **1.0080** | **0.6038** | **49.8%** | **0.006** |
 
 **Goals:** the Poisson model's average error is 0.96 home goals and 0.83 away goals. Simply guessing
@@ -281,9 +287,9 @@ against the bookmaker's 0.243, so the bookmaker is better here too.
 
 **Hypothetical backtest:** every threshold lost money on the **validation** seasons (−6% to −11% ROI),
 so the system chose **"No bet"**. For information only, the same thresholds on the test seasons also
-lost money: −3% to −8% ROI over 1,100–3,250 bets, with drawdowns of 140–210 units. Every 95% interval
-includes zero, with low ends between −9% and −19% and high ends between +1% and +5%. Even at the best market price (which is unrealistic for one bettor), ROI was
-+1.1%, with an interval of −5.8% to +7.2%: indistinguishable from zero.
+lost money: −3% to −8% ROI over 1,100–3,250 bets, with drawdowns of 130–210 units. Every 95% interval
+includes zero, with low ends between −9% and −19% and high ends between +1% and +6%. Even at the best market price (which is unrealistic for one bettor), ROI was
++0.9%, with an interval of −5.4% to +7.3%: indistinguishable from zero.
 
 **Plain-English conclusion:** the models learn real patterns. They clearly beat the "know nothing"
 guess (1.0986). But the bookmaker's prices already contain everything our simple features know, and
@@ -300,18 +306,18 @@ Same rules for every league: train up to 2017/18, choose on 2018/19–2021/22, t
 
 | League | Test matches | Elo log loss | Model log loss | Bookmaker log loss | Bookmaker margin | Chosen on validation | Test ROI at EV ≥ 5% (95% interval) |
 |---|---|---|---|---|---|---|---|
-| England | 3,794 | 1.0306 | 1.0290 | **1.0080** | 5.5% | NO BET | −5.4% (−12.3% to 1.1%) |
+| England | 3,794 | 1.0299 | 1.0284 | **1.0080** | 5.5% | NO BET | −5.5% (−12.2% to 1.1%) |
 | Spain | 3,432 | 1.0213 | 1.0198 | **1.0007** | 6.1% | NO BET | −12.5% (−18.5% to −6.7%) |
-| Germany | 2,484 | 1.0243 | 1.0229 | **1.0025** | 5.5% | NO BET | −5.6% (−13.6% to 2.0%) |
-| Italy | 3,079 | 1.0332 | 1.0313 | **1.0086** | 5.9% | NO BET | −11.4% (−17.8% to −5.1%) |
+| Germany | 2,484 | 1.0243 | 1.0230 | **1.0025** | 5.5% | NO BET | −5.1% (−12.8% to 2.5%) |
+| Italy | 3,079 | 1.0332 | 1.0313 | **1.0086** | 5.9% | NO BET | −11.3% (−17.5% to −5.2%) |
 | France | 2,721 | 1.0429 | 1.0408 | **1.0148** | 6.4% | NO BET | −13.4% (−20.7% to −6.1%) |
-| Netherlands | 1,257 | 0.9513 | 0.9488 | **0.9395** | 5.7% | NO BET | +0.7% (−11.4% to 12.7%) |
+| Netherlands | 1,257 | 0.9513 | 0.9485 | **0.9395** | 5.7% | NO BET | +3.6% (−8.7% to 16.0%) |
 | Portugal | 1,257 | 0.9225 | 0.9237 | **0.9083** | 6.4% | NO BET | −14.1% (−25.3% to −3.1%) |
 | Belgium | 1,277 | 1.0019 | 1.0037 | **0.9893** | 6.8% | NO BET | −12.9% (−23.0% to −2.0%) |
 | Turkey | 1,340 | 0.9811 | 0.9832 | **0.9552** | 6.7% | NO BET | −20.7% (−30.9% to −11.0%) |
 | Greece | 405 | 0.9693 | 0.9663 | **0.9406** | 7.6% | NO BET | −12.3% (−30.6% to 7.6%) |
 | Scotland | 1,628 | 1.0063 | 1.0098 | **0.9854** | 7.6% | EV ≥ 15% (see below) | −23.3% (−32.7% to −13.5%) |
-| All pooled | 22,674 | 1.0128 | 1.0111 | **0.9909** | 6.1% | NO BET | −11.0% (−13.4% to −8.5%) |
+| All pooled | 22,674 | 1.0127 | 1.0110 | **0.9909** | 6.1% | NO BET | −11.1% (−13.5% to −8.5%) |
 
 What this shows:
 - The **bookmaker is better in every league**. Smaller, less-watched leagues (Greece, Turkey, Scotland)
@@ -360,6 +366,32 @@ probabilities with the margin removed, the bookmaker's margin, the expected valu
 expected goals, and P(over 2.5). When the model rates an outcome higher than the bookmaker, the file says
 so, but **this is not a bet signal**: in every league above, the bookmaker was right more often than the model.
 
+### 7e. Flashscore reader (personal use)
+
+`python -m footy.flashscore --leagues G1 E0 --bookmaker Stoiximan` opens Flashscore in an invisible
+Chrome browser and, for each league:
+1. reads the **results** page and keeps every result played *after* the dataset ends (early September
+   2026). This catches the Elo ratings and form up to today;
+2. reads the **fixtures** page, and for each match in the next 10 days (at most 20 per league) opens its
+   **odds** page and takes the 1X2 odds of your chosen bookmaker. If that bookmaker isn't listed, it uses
+   the first one shown;
+3. translates Flashscore's team names into the dataset's names ("Olympiacos Piraeus" → "Olympiakos",
+   "AEK Athens" → "AEK"). Names it can't match are listed; add them to a file called
+   `team_aliases.csv`, with the columns `flashscore,dataset`;
+4. saves everything to `outputs/flashscore_fixtures.csv`, in the same format as `my_fixtures.csv`.
+
+Then run `python -m footy.upcoming outputs\flashscore_fixtures.csv`, and look at the dashboard's
+**Upcoming** tab.
+
+Good to know:
+- **The bookmakers shown depend on your location.** From Greece, Flashscore shows Stoiximan.gr,
+  PameStoixima, Novibet, bet365, Bwin.gr and Interwetten. From another country you'll see other ones.
+- **It is deliberately slow**: it waits 2–4 seconds between pages. One league takes about 1–2 minutes.
+- Add `--show-browser` to watch it work. Use `--days-ahead` and `--max-matches` to read fewer pages.
+- **It will break if Flashscore changes its website.** When it does, the message says nothing was
+  collected; typing odds in by hand (7d) still works.
+- Only the 1X2 odds, kickoff dates and results are read. Team news, line-ups and injuries are not.
+
 ---
 
 ## 8. Limitations (please read)
@@ -393,14 +425,18 @@ so, but **this is not a bet signal**: in every league above, the bookmaker was r
   are frozen at early September 2026. The model is always a logistic regression (C = 0.1), because a
   logistic regression won validation in every league; the C setting made almost no difference.
 - **Odds you type in** are only checked loosely, so mistakes in typing go straight into the comparison.
-- **No Stoiximan or Flashscore automation**, for the terms-of-use reasons in section 3.
+- **The Flashscore reader** goes against Flashscore's terms, which forbid scraping. It's included only
+  because you asked for it for private use. It depends on the site's current layout, and it was tested on
+  saved copies of real Flashscore pages, not live from Greece (this test computer can't reach Flashscore).
+  Results it adds are trusted as they are, and newly promoted clubs are matched to the dataset's older
+  club of the same name (e.g. "Iraklis 1908" → "Iraklis").
 
 ---
 
 ## 9. Running the tests
 
 ```powershell
-python -m pytest            # all 35 tests, about 10 seconds, no internet needed
+python -m pytest            # all 50 tests, about 10 seconds, no internet needed
 python -m pytest -v         # list each test by name
 ```
 
@@ -418,6 +454,8 @@ The tests use small, **made-up** leagues, so they don't need the real data. They
   and there is no leakage.
 - **Upcoming matches**: margin maths, typed-in results updating the ratings, team-name suggestions, and
   the out-of-date warning.
+- **Flashscore reader**: dates without a year, odds-page addresses, choosing the bookmaker, team-name
+  matching, skipping results already in the dataset, and the page-reading code (on hand-written sample pages).
 - **End to end**: the whole pipeline and the dashboard (every results folder) run on fake data.
 
 ---

@@ -5,3 +5,6 @@ scikit-learn>=1.4
 scipy>=1.11
 streamlit>=1.50
 pytest>=8.0
+# Optional: only for reading Flashscore (python -m footy.flashscore). After installing, run once:
+#   python -m playwright install chromium
+playwright>=1.45

@@ -160,5 +160,6 @@ with tab7:
         st.warning("A 'disagreement' with the bookmaker is NOT a bet signal: in every backtest the bookmaker "
                    "was more accurate than this model.")
     else:
-        st.info("Copy fixtures_template.csv, type in odds you see in the app, then run "
-                " python -m footy.upcoming my_fixtures.csv")
+        st.info("Either copy fixtures_template.csv and type in odds you see, or run "
+                "python -m footy.flashscore --leagues G1 (personal use). Then run "
+                "python -m footy.upcoming <your file>.")
