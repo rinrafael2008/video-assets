@@ -57,6 +57,8 @@ BUILT_IN_ALIASES = {
     "Bayer Leverkusen": "Leverkusen", "Hamburger SV": "Hamburg", "AC Milan": "Milan", "AS Roma": "Roma",
     "Hellas Verona": "Verona", "PSG": "Paris SG", "Sporting CP": "Sp Lisbon", "Sporting Lisbon": "Sp Lisbon",
     "FC Porto": "Porto", "Braga": "Sp Braga", "SC Braga": "Sp Braga", "PSV": "PSV Eindhoven",
+    "Dep. A Coruna": "La Coruna", "Basaksehir": "Buyuksehyr", "Royale Union SG": "St. Gilloise",
+    "St. Liege": "Standard",
 }
 ALIAS_FILE = config.PROJECT_ROOT / "team_aliases.csv"
 NOISE_WORDS = {"fc", "cf", "ac", "as", "sc", "afc", "sv", "fk", "ssc", "cd", "ud", "rc", "club", "de"}
@@ -160,8 +162,11 @@ def match_team(name: str, known: list[str], aliases: dict, preferred: list[str] 
     for pool in ([preferred] if preferred else []) + [known]:
         if name in pool:
             return name
-        if aliases.get(name) in pool:
-            return aliases[name]
+        if name in aliases:
+            want = re.sub(r"[^a-z0-9]", "", aliases[name].lower())
+            hit = [k for k in pool if re.sub(r"[^a-z0-9]", "", k.lower()) == want]
+            if hit:
+                return hit[0]
         target = _norm(name)
         normed = {k: _norm(k) for k in pool}
         exact = [k for k, v in normed.items() if v == target]

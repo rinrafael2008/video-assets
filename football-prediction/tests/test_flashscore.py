@@ -38,10 +38,11 @@ def test_choose_bookmaker():
     ("Olympiacos Piraeus", "Olympiakos"), ("AEK Athens", "AEK"), ("PAOK", "PAOK"),
     ("Levadiakos", "Levadeiakos"), ("Volos", "Volos NFC"), ("OFI Crete", "OFI Crete"),
     ("Manchester Utd", "Man United"), ("Nottingham", "Nott'm Forest"), ("Bayern Munich", "Bayern Munich"),
+    ("B. Monchengladbach", "MGladbach"),     # alias target spelled differently in the dataset
 ])
 def test_team_matching(flashscore, expected):
     known = ["AEK", "Olympiakos", "Olympiakos Volou", "PAOK", "Levadeiakos", "Volos NFC", "Niki Volos",
-             "OFI", "OFI Crete", "Man United", "Man City", "Nott'm Forest", "Bayern Munich"]
+             "OFI", "OFI Crete", "Man United", "Man City", "Nott'm Forest", "Bayern Munich", "MGladbach"]
     assert fs.match_team(flashscore, known, fs.load_aliases()) == expected
 
 
