@@ -10,7 +10,24 @@ MATCHES_CSV = DATA_DIR / "Matches.csv"
 # Dataset: "Club Football Match Data" by xgabora (MIT licence). See DATA_LICENSE.md.
 DATA_URL = "https://raw.githubusercontent.com/xgabora/Club-Football-Match-Data/main/data/Matches.csv"
 
-# Which leagues to use. E0 = English Premier League, E1 = English Championship.
+# "Main leagues" studied by `python -m footy.study`: country -> divisions loaded together.
+# Second divisions are included where available so Elo can follow promoted/relegated teams.
+LEAGUE_GROUPS = {
+    "England": ["E0", "E1"],
+    "Spain": ["SP1", "SP2"],
+    "Germany": ["D1", "D2"],
+    "Italy": ["I1", "I2"],
+    "France": ["F1", "F2"],
+    "Netherlands": ["N1"],
+    "Portugal": ["P1"],
+    "Belgium": ["B1"],
+    "Turkey": ["T1"],
+    "Greece": ["G1"],
+    "Scotland": ["SC0", "SC1"],
+}
+TOP_DIVISIONS = {"E0", "SP1", "D1", "I1", "F1", "N1", "P1", "B1", "T1", "G1", "SC0"}
+
+# Which leagues the single-run pipeline uses by default. E0 = English Premier League, E1 = English Championship.
 # Using both lets Elo ratings follow teams through promotion and relegation.
 DIVISIONS = ["E0", "E1"]
 
@@ -33,3 +50,12 @@ MIN_BETS_FOR_STRATEGY = 100  # on validation; fewer bets than this = too noisy t
 MIN_ODDS, MAX_ODDS = 1.01, 10.0
 BOOTSTRAP_SAMPLES = 2000
 RANDOM_SEED = 42
+
+# ---- National teams (python -m footy.international) --------------------------------
+# Dataset: "International football results from 1872" by Mart Jürisoo, CC0 (public domain).
+INTL_DATA_URL = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
+INTL_CSV = DATA_DIR / "international_results.csv"
+INTL_TRAIN_START = "1990-01-01"   # older matches only warm up the Elo ratings
+INTL_TRAIN_END = "2013-12-31"     # train:      1990 .. 2013
+INTL_VALID_END = "2018-12-31"     # validation: 2014 .. 2018   test: 2019 .. latest
+INTL_HOME_ADVANTAGE = 100.0

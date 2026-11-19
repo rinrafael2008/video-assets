@@ -54,9 +54,15 @@ class Elo:
         r = self.season_regression
         self.ratings = {t: (1 - r) * v + r * mean for t, v in self.ratings.items()}
 
-    def update(self, home: str, away: str, home_goals: int, away_goals: int) -> None:
+    def home_edge(self, neutral: bool = False) -> float:
+        """Home advantage in rating points (0 when the match is at a neutral venue)."""
+        return 0.0 if neutral else self.home_advantage
+
+    def update(self, home: str, away: str, home_goals: int, away_goals: int,
+               k: float | None = None, neutral: bool = False) -> None:
+        """`k` can be raised for important matches (e.g. a World Cup final)."""
         h, a = self.rating(home), self.rating(away)
-        change = self.k * (actual_home_score(home_goals, away_goals)
-                           - expected_home_score(h, a, self.home_advantage))
+        change = (self.k if k is None else k) * (actual_home_score(home_goals, away_goals)
+                                                 - expected_home_score(h, a, self.home_edge(neutral)))
         self.ratings[home] = h + change
         self.ratings[away] = a - change

@@ -44,3 +44,12 @@ def test_split_is_chronological_and_disjoint(matches):
     assert set(train.index).isdisjoint(valid.index) and set(valid.index).isdisjoint(test.index)
     assert train.Season.min() == 2002            # burn-in season dropped
     assert len(train) + len(valid) + len(test) == (df.Season >= 2002).sum()
+
+
+def test_future_fixtures_get_features_but_change_nothing(matches):
+    with_fixture = pd.concat([matches, matches.tail(1).assign(FTHome=np.nan, FTAway=np.nan, FTResult=None)],
+                             ignore_index=True)
+    a = build_features(matches)
+    b = build_features(with_fixture)
+    pd.testing.assert_frame_equal(a[FEATURE_COLUMNS], b.iloc[:-1][FEATURE_COLUMNS])
+    assert b.iloc[-1][FEATURE_COLUMNS].notna().all()

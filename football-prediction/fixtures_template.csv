@@ -1,0 +1,5 @@
+Division,MatchDate,HomeTeam,AwayTeam,OddHome,OddDraw,OddAway,Bookmaker,FTHome,FTAway
+G1,2026-09-14,Olympiakos,Aris,1.40,4.60,7.50,EXAMPLE result row - replace with a real result,2,0
+G1,2026-11-29,Olympiakos,PAOK,2.05,3.30,3.70,EXAMPLE odds - replace with odds you see,,
+G1,2026-11-29,AEK,Panathinaikos,2.20,3.25,3.30,EXAMPLE odds - replace with odds you see,,
+E0,2026-11-29,Arsenal,Chelsea,1.80,3.80,4.40,EXAMPLE odds - replace with odds you see,,

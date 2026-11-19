@@ -2,7 +2,8 @@
 
 A small Python project that teaches you how to:
 
-1. predict the probabilities of **home win / draw / away win** and the **number of goals** for football matches,
+1. predict the probabilities of **home win / draw / away win** and the **number of goals** for football
+   matches, in **11 main European leagues** (including Greece) and for **national teams**,
 2. check honestly whether those predictions are any good,
 3. compare them with the bookmaker's view, and
 4. run a **pretend** betting simulation to see whether the model could have made money.
@@ -64,12 +65,25 @@ streamlit run dashboard.py
 python -m pytest
 ```
 
+**Optional extras** (sections 7b–7d explain each one):
+
+```powershell
+python -m footy.study                          # every main league + one pooled model (~1 minute)
+python -m footy.international --download       # national teams (downloads ~4 MB the first time)
+copy fixtures_template.csv my_fixtures.csv     # then type in odds you see, e.g. on Stoiximan
+python -m footy.upcoming my_fixtures.csv       # predictions for upcoming matches vs your odds
+```
+
+In the dashboard, use the **"Results to show"** menu on the left to switch between leagues and national teams.
+
 If you use **Command Prompt** (cmd.exe) instead of PowerShell, step 3 is `.venv\Scripts\activate.bat`.
 On macOS or Linux, use `python3 -m venv .venv` and `source .venv/bin/activate`.
 
-To try other leagues: `python -m footy.pipeline --divisions SP1 SP2` (Spain). Other codes are `D1`
-(Germany), `I1` (Italy), `F1` (France), each followed by its second division (`D2`, `I2`, `F2`).
-Use top **and** second divisions together, so that Elo ratings can follow promoted and relegated teams.
+To run a single league: `python -m footy.pipeline --divisions G1` (Greece). Codes: `E0`/`E1` England,
+`SP1`/`SP2` Spain, `D1`/`D2` Germany, `I1`/`I2` Italy, `F1`/`F2` France, `N1` Netherlands, `P1` Portugal,
+`B1` Belgium, `T1` Turkey, `G1` Greece, `SC0`/`SC1` Scotland. Where a second division exists, load it
+too, so that Elo ratings can follow promoted and relegated teams. The dataset also has `ARG`, `BRA`,
+`USA`, `JAP` and more for 2012–2024, but those are not studied here (see Limitations).
 
 ---
 
@@ -87,9 +101,13 @@ football-prediction/
 │   ├── odds.py            odds -> probabilities, removing the bookmaker margin
 │   ├── evaluate.py        log loss, Brier score, accuracy, calibration
 │   ├── backtest.py        hypothetical flat-stake value-betting simulation
-│   └── pipeline.py        runs everything in order, writes outputs/
+│   ├── pipeline.py        runs everything in order, writes outputs/
+│   ├── study.py           runs the pipeline for every main league + a pooled model
+│   ├── international.py   national-team version (neutral venues, match importance)
+│   └── upcoming.py        predictions for upcoming matches vs odds you type in
 ├── dashboard.py           local Streamlit dashboard (only reads outputs/)
 ├── tests/                 automated tests (use small fake data, no download needed)
+├── fixtures_template.csv  example file for upcoming matches and your own odds
 ├── requirements.txt
 ├── DATA_LICENSE.md        dataset licence details
 └── README.md              this file
@@ -112,6 +130,17 @@ Check with them before any commercial use. [DATA_LICENSE.md](DATA_LICENSE.md) ha
 some alternatives.
 
 By default we use the **English Premier League (E0)** and the **Championship (E1)**: about 23,000 matches.
+`python -m footy.study` uses 11 countries: about 150,000 matches.
+
+**National teams** use a second dataset: *International football results from 1872* by Mart Jürisoo.
+It is **CC0 (public domain)**, so you can use it for anything. It has about 50,000 matches, but **no odds**.
+
+**Why not Stoiximan or Flashscore?** Flashscore's terms allow personal use only and forbid scraping.
+Bookmakers such as Stoiximan don't give a licence to copy their odds either. So this project never
+downloads from them automatically. Instead, you can **read the odds in the app yourself and type them
+into a CSV file** (section 7d). That is ordinary personal research. Pre-match information such as team
+news or line-ups can't be added automatically for the same reason. A paid, licensed data API with its
+own key would be the legitimate route (see next steps).
 
 ---
 
@@ -264,6 +293,73 @@ expected result for a first model, and it is exactly why the no-bet option exist
 
 (Your numbers may differ slightly if the dataset has been updated since this run.)
 
+### 7b. All main leagues (`python -m footy.study`)
+
+Same rules for every league: train up to 2017/18, choose on 2018/19–2021/22, test from 2022/23.
+"Bookmaker" = Bet365 with the margin removed. The last column is for information only.
+
+| League | Test matches | Elo log loss | Model log loss | Bookmaker log loss | Bookmaker margin | Chosen on validation | Test ROI at EV ≥ 5% (95% interval) |
+|---|---|---|---|---|---|---|---|
+| England | 3,794 | 1.0306 | 1.0290 | **1.0080** | 5.5% | NO BET | −5.4% (−12.3% to 1.1%) |
+| Spain | 3,432 | 1.0213 | 1.0198 | **1.0007** | 6.1% | NO BET | −12.5% (−18.5% to −6.7%) |
+| Germany | 2,484 | 1.0243 | 1.0229 | **1.0025** | 5.5% | NO BET | −5.6% (−13.6% to 2.0%) |
+| Italy | 3,079 | 1.0332 | 1.0313 | **1.0086** | 5.9% | NO BET | −11.4% (−17.8% to −5.1%) |
+| France | 2,721 | 1.0429 | 1.0408 | **1.0148** | 6.4% | NO BET | −13.4% (−20.7% to −6.1%) |
+| Netherlands | 1,257 | 0.9513 | 0.9488 | **0.9395** | 5.7% | NO BET | +0.7% (−11.4% to 12.7%) |
+| Portugal | 1,257 | 0.9225 | 0.9237 | **0.9083** | 6.4% | NO BET | −14.1% (−25.3% to −3.1%) |
+| Belgium | 1,277 | 1.0019 | 1.0037 | **0.9893** | 6.8% | NO BET | −12.9% (−23.0% to −2.0%) |
+| Turkey | 1,340 | 0.9811 | 0.9832 | **0.9552** | 6.7% | NO BET | −20.7% (−30.9% to −11.0%) |
+| Greece | 405 | 0.9693 | 0.9663 | **0.9406** | 7.6% | NO BET | −12.3% (−30.6% to 7.6%) |
+| Scotland | 1,628 | 1.0063 | 1.0098 | **0.9854** | 7.6% | EV ≥ 15% (see below) | −23.3% (−32.7% to −13.5%) |
+| All pooled | 22,674 | 1.0128 | 1.0111 | **0.9909** | 6.1% | NO BET | −11.0% (−13.4% to −8.5%) |
+
+What this shows:
+- The **bookmaker is better in every league**. Smaller, less-watched leagues (Greece, Turkey, Scotland)
+  are *not* easier. They have higher margins (6.7–7.6%), and our model is just as far behind.
+- **Scotland is a warning example.** On validation, EV ≥ 15% made +0.05%, which was just enough to pass
+  the rule, so the system chose it. On the test seasons it lost **23%** over 527 bets. A strategy that
+  only *just* broke even in the past is usually luck. We did **not** change the rule after seeing this,
+  because that would have been cheating with the test data.
+- **Greece:** the dataset is missing the 2011/12, 2022/23 and 2023/24 seasons, which is why its test set
+  is small (405 matches).
+
+### 7c. National teams (`python -m footy.international`)
+
+Train 1990–2013, validation 2014–2018, test 2019 to November 2026 (7,874 matches). Earlier matches back
+to 1872 are used only to warm up the Elo ratings. Differences from clubs:
+- no home advantage at **neutral venues**;
+- World Cup matches move ratings more than friendlies (bigger **K**);
+- big wins move ratings more (a **goal-difference multiplier**).
+
+| Model | Log loss | Brier | Accuracy |
+|---|---|---|---|
+| Elo baseline | 0.8613 | 0.5058 | 60.9% |
+| Logistic regression | **0.8565** | **0.5028** | **60.9%** |
+| Poisson goals model (H/D/A) | 0.8763 | 0.5143 | 59.8% |
+| Naive (historical rates) | 1.0490 | 0.6324 | 48.0% |
+
+National-team matches are more predictable than club matches, because the gaps in strength are bigger
+(think Germany vs San Marino). On **major tournament finals** only (803 matches), log loss is 0.906.
+There are **no odds** in this dataset, so we can't say whether the model would beat the bookmaker here,
+and there's no backtest.
+
+### 7d. Upcoming matches with your own odds (e.g. Stoiximan)
+
+1. Copy `fixtures_template.csv` to `my_fixtures.csv` and open it in Excel or Notepad.
+2. One row per match: league code, date, teams, and the three odds you see (home, draw, away).
+   The `Bookmaker` column is just a note for yourself.
+3. **Team names must match the dataset** (e.g. `Olympiakos`, `PAOK`, `AEK`, `Panathinaikos`). If a name
+   is wrong, the program suggests the closest ones. Capital letters are fixed automatically.
+4. The dataset ends in early September 2026. To catch the ratings up, add recent **results** as rows with
+   `FTHome` and `FTAway` filled in. The program warns you when your data is more than 3 weeks behind.
+5. Run `python -m footy.upcoming my_fixtures.csv`. The results go to `outputs/upcoming_predictions.csv`
+   and the dashboard's **Upcoming** tab.
+
+For each match you get: the model's probabilities and "fair odds" (1 ÷ probability), the bookmaker's
+probabilities with the margin removed, the bookmaker's margin, the expected value of each outcome, the
+expected goals, and P(over 2.5). When the model rates an outcome higher than the bookmaker, the file says
+so, but **this is not a bet signal**: in every league above, the bookmaker was right more often than the model.
+
 ---
 
 ## 8. Limitations (please read)
@@ -289,14 +385,22 @@ expected result for a first model, and it is exactly why the no-bet option exist
   but bets on the same weekend are related. The true uncertainty is probably wider.
 - **Choosing the threshold** on validation is itself a small search. With only 6 options, the risk of
   overfitting is small, but it isn't zero.
-- **Only tested on English leagues**. Other leagues will need their own run.
+- **Leagues not studied**: the extra leagues in the dataset (Argentina, Brazil, USA, Japan and others)
+  run on a calendar-year season, but the code assumes seasons start in July. They also stop in 2024.
+- **National teams have no odds**, so their results only measure prediction quality, not betting value.
+  Team names in that dataset change over time (e.g. "Czechoslovakia"); they are treated as separate teams.
+- **Upcoming predictions** are only as good as the ratings. If you don't add recent results, the ratings
+  are frozen at early September 2026. The model is always a logistic regression (C = 0.1), because a
+  logistic regression won validation in every league; the C setting made almost no difference.
+- **Odds you type in** are only checked loosely, so mistakes in typing go straight into the comparison.
+- **No Stoiximan or Flashscore automation**, for the terms-of-use reasons in section 3.
 
 ---
 
 ## 9. Running the tests
 
 ```powershell
-python -m pytest            # all 24 tests, about 5 seconds, no internet needed
+python -m pytest            # all 35 tests, about 10 seconds, no internet needed
 python -m pytest -v         # list each test by name
 ```
 
@@ -310,7 +414,11 @@ The tests use small, **made-up** leagues, so they don't need the real data. They
   calibrated by construction gets a low calibration error.
 - **Backtest**: profit, drawdown, the value rule, missing odds, and the no-bet choice when the model
   has no edge.
-- **End to end**: the whole pipeline and the dashboard both run on fake data.
+- **National teams**: neutral venues get no home advantage, more important matches move ratings more,
+  and there is no leakage.
+- **Upcoming matches**: margin maths, typed-in results updating the ratings, team-name suggestions, and
+  the out-of-date warning.
+- **End to end**: the whole pipeline and the dashboard (every results folder) run on fake data.
 
 ---
 
@@ -319,7 +427,8 @@ The tests use small, **made-up** leagues, so they don't need the real data. They
 2. Add the Dixon–Coles correction to the goals model.
 3. Add more leagues, or pool several leagues together.
 4. Add features such as xG, if you can find an openly licensed source.
-5. Track **closing line value**: whether your bets beat the final odds. This is a faster and less noisy
+5. Use a **licensed** live-data API (with your own key) for fixtures, line-ups and odds, instead of typing them in.
+6. Track **closing line value**: whether your bets beat the final odds. This is a faster and less noisy
    test of skill than profit.
 
 Responsible gambling: if you or someone you know is struggling with gambling, help is available, for

@@ -27,3 +27,18 @@ def test_new_season_pulls_towards_mean():
     elo.ratings = {"A": 1600.0, "B": 1400.0}
     elo.new_season()
     assert elo.ratings == {"A": 1550.0, "B": 1450.0}
+
+
+def test_neutral_venue_removes_home_advantage():
+    elo = Elo(k=20, home_advantage=100)
+    elo.update("A", "B", 1, 1, neutral=True)       # equal teams, neutral, draw -> no change
+    assert elo.ratings == {"A": 1500, "B": 1500}
+    elo.update("A", "B", 1, 1)                      # at home a draw is a disappointment
+    assert elo.ratings["A"] < 1500
+
+
+def test_bigger_k_moves_ratings_more():
+    small, big = Elo(home_advantage=0), Elo(home_advantage=0)
+    small.update("A", "B", 1, 0, k=10)
+    big.update("A", "B", 1, 0, k=60)
+    assert big.ratings["A"] - 1500 == 6 * (small.ratings["A"] - 1500)

@@ -51,10 +51,9 @@ class EloBaseline:
 
 
 class SklearnOutcomeModel:
-    features = FEATURE_COLUMNS
-
-    def __init__(self, name, estimator, scale=True):
+    def __init__(self, name, estimator, scale=True, features=FEATURE_COLUMNS):
         self.name = name
+        self.features = list(features)
         steps = [SimpleImputer(strategy="median")]
         if scale:
             steps.append(StandardScaler())
@@ -68,23 +67,25 @@ class SklearnOutcomeModel:
         return _predict_hda(self.model, df[self.features])
 
 
-def candidate_outcome_models():
+def candidate_outcome_models(features=FEATURE_COLUMNS):
     """A few reasonable settings. The validation set decides which one wins."""
     return [
-        SklearnOutcomeModel("Logistic regression (C=0.1)", LogisticRegression(C=0.1, max_iter=2000)),
-        SklearnOutcomeModel("Logistic regression (C=1.0)", LogisticRegression(C=1.0, max_iter=2000)),
+        SklearnOutcomeModel("Logistic regression (C=0.1)", LogisticRegression(C=0.1, max_iter=2000),
+                            features=features),
+        SklearnOutcomeModel("Logistic regression (C=1.0)", LogisticRegression(C=1.0, max_iter=2000),
+                            features=features),
         SklearnOutcomeModel("Gradient boosting (shallow)", HistGradientBoostingClassifier(
             max_depth=3, learning_rate=0.03, max_iter=200, l2_regularization=1.0,
-            early_stopping=False, random_state=0), scale=False),
+            early_stopping=False, random_state=0), scale=False, features=features),
     ]
 
 
 class GoalsModel:
     name = "Poisson goals model"
-    features = FEATURE_COLUMNS
     MAX_GOALS = 10
 
-    def __init__(self, alpha=1.0):
+    def __init__(self, alpha=1.0, features=FEATURE_COLUMNS):
+        self.features = list(features)
         def pipe():
             return make_pipeline(SimpleImputer(strategy="median"), StandardScaler(),
                                  PoissonRegressor(alpha=alpha, max_iter=1000))

@@ -71,11 +71,14 @@ def clean(raw: pd.DataFrame, divisions=None) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
-def load(path=config.MATCHES_CSV, divisions=None) -> pd.DataFrame:
+def load_raw(path=config.MATCHES_CSV) -> pd.DataFrame:
     if not path.exists():
         sys.exit(f"Data file not found: {path}\nRun first:  python -m footy.data")
-    raw = pd.read_csv(path, low_memory=False)
-    return clean(raw, divisions)
+    return pd.read_csv(path, low_memory=False)
+
+
+def load(path=config.MATCHES_CSV, divisions=None) -> pd.DataFrame:
+    return clean(load_raw(path), divisions)
 
 
 if __name__ == "__main__":

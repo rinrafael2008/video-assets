@@ -30,3 +30,20 @@ None of the clearly open-licensed datasets we found include bookmaker odds. This
 for the market comparison and the backtest, which is why we chose this dataset.
 
 Attribution: "Club Football Match Data" © 2025 xgabora, MIT licence. Source data: Football-Data.co.uk, ClubElo.
+
+---
+
+# National teams dataset
+
+**International football results from 1872 to 2026** by Mart Jürisoo
+- Repository: https://github.com/martj42/international_results (file `results.csv`)
+- Licence: **CC0 1.0 (public domain dedication)**, so it can be used for any purpose, including ML training,
+  with no conditions. Downloaded by `python -m footy.international --download`, not redistributed here.
+- Contains results only (no odds).
+
+# Stoiximan, Flashscore and other betting/score sites
+
+This project does **not** scrape or call these sites. Flashscore's terms permit personal use only and
+forbid scraping its content without consent. Bookmakers such as Stoiximan do not offer a licence to reuse
+their odds. If you type odds you personally see into `my_fixtures.csv` for your own research, that stays
+on your computer and is not redistributed. Do not publish or share files of copied odds.

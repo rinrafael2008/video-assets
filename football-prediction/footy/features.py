@@ -6,6 +6,9 @@ We walk through the matches in date order. For each match we:
 
 Because step 1 always happens before step 2, a match's own result (and any later
 result) can never leak into its features. tests/test_no_leakage.py checks this.
+
+Rows without a score (future fixtures) get features but do not update anything,
+which is how we predict upcoming matches.
 """
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ from collections import defaultdict, deque
 import numpy as np
 import pandas as pd
 
+from footy import config
 from footy.elo import Elo
 
 FORM_WINDOW = 5
@@ -63,11 +67,13 @@ def build_features(matches: pd.DataFrame, elo: Elo | None = None) -> pd.DataFram
             else:
                 f[f"{side}_rest_days"] = MAX_REST_DAYS
             f[f"{side}_games_played"] = min(games_played[team], 10)
-        f["is_top_division"] = float(m.Division in ("E0", "SP1", "D1", "I1", "F1"))
+        f["is_top_division"] = float(m.Division in config.TOP_DIVISIONS)
         rows.append(f)
 
         # ---- 2. update state AFTER the match ------------------------------------
-        hg, ag = m.FTHome, m.FTAway
+        if pd.isna(m.FTHome) or pd.isna(m.FTAway):
+            continue                       # future fixture: nothing to learn yet
+        hg, ag = int(m.FTHome), int(m.FTAway)
         hp = 3 if hg > ag else (1 if hg == ag else 0)
         ap = 3 if ag > hg else (1 if hg == ag else 0)
         history[m.HomeTeam].append((hp, hg, ag))
