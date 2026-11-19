@@ -1,0 +1,7 @@
+# Tested with Python 3.11-3.13 (pandas 3.0, numpy 2.5, scikit-learn 1.9, streamlit 1.67).
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+scipy>=1.11
+streamlit>=1.50
+pytest>=8.0
