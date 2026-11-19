@@ -12,7 +12,9 @@
    So far, no league passes. The usual verdict is therefore NO BET, and that is the honest answer.
 
 Personal use only (agones.gr and Flashscore). Research only: this never places a bet.
-Options:  --date 2026-11-22   --leagues G1 E0   --no-flashscore
+Before all that it refreshes the current season from Football-Data.co.uk (footy.update),
+so only the last few days need Flashscore.
+Options:  --date 2026-11-22   --leagues G1 E0   --no-flashscore   --no-update
 """
 from __future__ import annotations
 
@@ -174,7 +176,18 @@ def main():
     parser.add_argument("--date", default=date.today().isoformat(), help="YYYY-MM-DD (default: today)")
     parser.add_argument("--leagues", nargs="+", help="only these league codes, e.g. G1 E0")
     parser.add_argument("--no-flashscore", action="store_true", help="skip Flashscore (not recommended)")
+    parser.add_argument("--no-update", action="store_true", help="skip the Football-Data.co.uk refresh")
     args = parser.parse_args()
+    if not args.no_update:
+        from footy import update
+        try:
+            print("Refreshing results and odds from Football-Data.co.uk...")
+            quick = not update.CACHE_DIR.exists()     # first time: just the last 2 seasons, not 1993-now
+            add = update.update(verbose=False, first_season=update.current_season() - 1 if quick else update.FIRST_SEASON)
+            if len(add):
+                add.to_csv(update.UPDATE_CSV, index=False)
+        except Exception as e:      # no internet, site down, ...: carry on with what we have
+            print(f"WARNING: Football-Data.co.uk update failed ({e}); continuing with saved data.")
     run(date.fromisoformat(args.date), args.leagues, use_flashscore=not args.no_flashscore)
 
 

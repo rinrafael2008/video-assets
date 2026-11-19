@@ -55,6 +55,10 @@ pip install -r requirements.txt
 # 5. Download the data (about 45 MB, saved to data\Matches.csv)
 python -m footy.data
 
+# 5b. Recommended: bring it up to date AND extend it back to 1993/94 from Football-Data.co.uk
+#     (first time about 10 minutes; afterwards seconds). Re-run it any time.
+python -m footy.update
+
 # 6. Run the whole research pipeline (takes about 10 seconds; results go to outputs\)
 python -m footy.pipeline
 
@@ -115,7 +119,8 @@ football-prediction/
 │   ├── upcoming.py        predictions for upcoming matches vs odds you type in
 │   ├── flashscore.py      personal-use reader: Flashscore fixtures, odds and recent results
 │   ├── agones.py          personal-use reader: OPAP coupon (codes + odds) from agones.gr
-│   └── today.py           "what should I play today?" - verdict per coupon code
+│   ├── today.py           "what should I play today?" - verdict per coupon code
+│   └── update.py          keeps the data current + adds 1993-2000 from Football-Data.co.uk
 ├── dashboard.py           local Streamlit dashboard (only reads outputs/)
 ├── tests/                 automated tests (use small fake data, no download needed)
 ├── fixtures_template.csv  example file for upcoming matches and your own odds
@@ -141,6 +146,22 @@ Check with them before any commercial use. [DATA_LICENSE.md](DATA_LICENSE.md) ha
 some alternatives.
 
 By default we use the **English Premier League (E0)** and the **Championship (E1)**: about 23,000 matches.
+
+**Keeping it up to date, with a bigger range.** The xgabora dataset is only updated every few months.
+At the time of writing it ends on 3 September 2026. `python -m footy.update` fills the gap from
+**Football-Data.co.uk**, the site the dataset itself was built from, which is updated twice a week:
+- the first run downloads **every season since 1993/94** for all 17 divisions and saves them in
+  `data/football-data/`. Later runs only re-download the current season;
+- team names that the two sources spell differently are translated automatically. The program learns
+  the translation from matches that appear in both (same league, date and score);
+- only matches the main dataset doesn't have are added (newer ones, and the 1990s), to
+  `data/Matches_update.csv`. Every command loads it automatically;
+- `python -m footy.today` refreshes the current season by itself, and then fills the last few days
+  (after Football-Data's latest update) from Flashscore.
+
+So the data covers **1993/94 to last weekend** (results; odds from about 2000 on). After the first update,
+re-run `python -m footy.study`: the models train on more seasons, and the numbers in section 7 will
+change a little.
 `python -m footy.study` uses 11 countries: about 150,000 matches.
 
 **National teams** use a second dataset: *International football results from 1872* by Mart Jürisoo.
@@ -440,10 +461,9 @@ Options: `--date 2026-11-22` (another day), `--leagues G1 E0` (only some leagues
 
 - **Data licence**: the compilation is MIT-licensed, but the original source (Football-Data.co.uk)
   has no formal open licence. See [DATA_LICENSE.md](DATA_LICENSE.md).
-- **When were the odds taken?** The dataset's Bet365 odds were probably collected a day or two before
-  kickoff, and in some seasons they may be closing odds. If they are closing odds, they are *sharper*
-  than the prices you would usually bet at, which makes the bookmaker look harder to beat. We can't
-  tell exactly which from the dataset.
+- **When were the odds taken?** Football-Data.co.uk's notes say its Bet365 odds are collected on **Friday
+  afternoons** for weekend games, and Tuesday afternoons for midweek games. They are *pre-closing* prices,
+  so a bettor really could have got them. Prices move afterwards (team news), and we can't simulate that.
 - **Best market price is optimistic**: it takes the best price from about 17 bookmakers after the fact.
   Getting it would need accounts everywhere, perfect timing, and no betting limits.
 - **The backtest is simplified**: no betting limits, no stake restrictions or banned accounts, no
@@ -466,6 +486,11 @@ Options: `--date 2026-11-22` (another day), `--leagues G1 E0` (only some leagues
 - **Upcoming predictions** are only as good as the ratings. If you don't add recent results, the ratings
   are frozen at early September 2026. The model is always a logistic regression (C = 0.1), because a
   logistic regression won validation in every league; the C setting made almost no difference.
+- **The Football-Data.co.uk updater** was written from the site's published column guide, and tested on
+  made-up files in that format. This test computer can't reach the site, so it hasn't run against the real
+  files yet. Check the "Saved ... extra matches" message after your first run. Team-name translation needs
+  at least 2 shared matches per club, so a club that appears only in brand-new data keeps Football-Data's
+  spelling.
 - **agones.gr reader**: personal use only, one page per run. It depends on the site's current layout.
   It was tested on saved copies of the real pages (this test computer can't reach the site). The matching
   of competitions to our leagues uses agones.gr's competition numbers, checked on one weekend's coupon.
@@ -482,7 +507,7 @@ Options: `--date 2026-11-22` (another day), `--leagues G1 E0` (only some leagues
 ## 9. Running the tests
 
 ```powershell
-python -m pytest            # all 58 tests, about 10 seconds, no internet needed
+python -m pytest            # all 63 tests, about 10 seconds, no internet needed
 python -m pytest -v         # list each test by name
 ```
 
@@ -504,6 +529,8 @@ The tests use small, **made-up** leagues, so they don't need the real data. They
   matching, skipping results already in the dataset, and the page-reading code (on hand-written sample pages).
 - **"What to play today"**: reading coupon rows and codes, Greek→Latin names (incl. ά-ι / ϊ), pairing
   lookalike names correctly (Brighton vs Everton), no pairing across leagues or days, and the verdict rules.
+- **Data updater**: reading old and new Football-Data CSV layouts, learning team-name translations from
+  shared matches, and never adding a match twice.
 - **End to end**: the whole pipeline and the dashboard (every results folder) run on fake data.
 
 ---

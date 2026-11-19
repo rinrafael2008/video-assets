@@ -88,10 +88,18 @@ def clean(raw: pd.DataFrame, divisions=None) -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
-def load_raw(path=config.MATCHES_CSV) -> pd.DataFrame:
+UPDATE_CSV = config.DATA_DIR / "Matches_update.csv"
+
+
+def load_raw(path=config.MATCHES_CSV, update_path=UPDATE_CSV) -> pd.DataFrame:
+    """The main dataset, plus the extra matches from `python -m footy.update` if you ran it."""
     if not path.exists():
         sys.exit(f"Data file not found: {path}\nRun first:  python -m footy.data")
-    return pd.read_csv(path, low_memory=False)
+    raw = pd.read_csv(path, low_memory=False)
+    if update_path is not None and update_path.exists():
+        extra = pd.read_csv(update_path, low_memory=False)
+        raw = pd.concat([raw, extra[[c for c in extra.columns if c in raw.columns]]], ignore_index=True)
+    return raw
 
 
 def load(path=config.MATCHES_CSV, divisions=None) -> pd.DataFrame:

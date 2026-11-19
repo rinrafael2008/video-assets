@@ -22,6 +22,11 @@
   Odds compilations and database rights (for example the EU/UK database right) are less clear.
   This note is not legal advice.
 
+**Football-Data.co.uk directly (`python -m footy.update`).** The same source the dataset was built from,
+downloaded directly to keep the data current and to add the seasons 1993/94–1999/2000. Same terms: free to
+download for personal research, no formal open licence. The files stay in your `data/` folder; don't
+redistribute them.
+
 **Alternatives with explicit open licences, but no betting odds:**
 - openfootball / football.csv: public domain (CC0), results only
 - Fjelstul English Football Database: CC BY-SA 4.0, results only
