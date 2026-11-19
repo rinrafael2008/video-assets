@@ -77,6 +77,9 @@ python -m footy.upcoming my_fixtures.csv       # predictions for upcoming matche
 python -m playwright install chromium          # once: downloads the browser it uses (~150 MB)
 python -m footy.flashscore --leagues G1 --bookmaker Stoiximan
 python -m footy.upcoming outputs\flashscore_fixtures.csv
+
+# "What should I play today?" - reads the OPAP coupon on agones.gr (personal use, section 7f)
+python -m footy.today
 ```
 
 In the dashboard, use the **"Results to show"** menu on the left to switch between leagues and national teams.
@@ -110,7 +113,9 @@ football-prediction/
 │   ├── study.py           runs the pipeline for every main league + a pooled model
 │   ├── international.py   national-team version (neutral venues, match importance)
 │   ├── upcoming.py        predictions for upcoming matches vs odds you type in
-│   └── flashscore.py      personal-use reader: Flashscore fixtures, odds and recent results
+│   ├── flashscore.py      personal-use reader: Flashscore fixtures, odds and recent results
+│   ├── agones.py          personal-use reader: OPAP coupon (codes + odds) from agones.gr
+│   └── today.py           "what should I play today?" - verdict per coupon code
 ├── dashboard.py           local Streamlit dashboard (only reads outputs/)
 ├── tests/                 automated tests (use small fake data, no download needed)
 ├── fixtures_template.csv  example file for upcoming matches and your own odds
@@ -392,6 +397,43 @@ Good to know:
   collected; typing odds in by hand (7d) still works.
 - Only the 1X2 odds, kickoff dates and results are read. Team news, line-ups and injuries are not.
 
+### 7f. "What should I play today?" (`python -m footy.today`)
+
+One command does the whole check:
+1. reads today's **OPAP Pame Stoixima coupon on agones.gr**: the **match codes** (κωδικοί), teams and
+   OPAP's 1 / X / 2 odds;
+2. keeps only matches from the 11 studied leagues. Other leagues are skipped, because the model was never
+   tested on them;
+3. reads **Flashscore** for those leagues, to bring ratings up to date and to translate the Greek team
+   names. Each coupon match is paired with that day's fixture in the same league. If the pairing isn't
+   clear, the match is **skipped, never guessed**;
+4. prints, for every code: OPAP's odds and margin, OPAP's chances (margin removed), the model's chances,
+   the expected goals, and a **verdict**.
+
+How the verdict is decided: a league counts as **playable** only if its betting rule made money on the
+validation seasons **and** on the unseen test seasons, with at least 95% of bootstrap resamples positive.
+If it is, a match gets **PLAY 1/X/2 (single, 1 unit)** when its expected value reaches that league's
+threshold. Otherwise it gets **NO BET**. **Right now no league passes**, so the answer is always NO BET.
+That's not a bug. It's what the evidence says, and the program will start saying PLAY only if a future,
+better model earns it.
+
+Example from the 22/11/2026 coupon (Greek Super League):
+
+```
+[668] 16:00  Λεβαδειακός - Ατρόμητος   (ΕΛΛΑΔΑ: Σούπερ Λιγκ 1)
+      OPAP odds   1 2.40  X 3.00  2 3.00   (margin 8.3%)
+      OPAP chance 1 38%  X 31%  2 31%
+      model       1 51%  X 29%  2 19%   expected goals 1.4-0.9
+      -> NO BET   (no betting rule passed validation)
+```
+
+The model likes the home side much more than OPAP does here. In the backtests, disagreements like
+this lost money more often than they won.
+
+Why "single, 1 unit" and never doubles or trebles: each selection carries OPAP's margin (usually 6–10%,
+more than Bet365's 5.5% used in the backtests). In a treble the margins multiply, to roughly 20–25%.
+Options: `--date 2026-11-22` (another day), `--leagues G1 E0` (only some leagues).
+
 ---
 
 ## 8. Limitations (please read)
@@ -424,6 +466,10 @@ Good to know:
 - **Upcoming predictions** are only as good as the ratings. If you don't add recent results, the ratings
   are frozen at early September 2026. The model is always a logistic regression (C = 0.1), because a
   logistic regression won validation in every league; the C setting made almost no difference.
+- **agones.gr reader**: personal use only, one page per run. It depends on the site's current layout.
+  It was tested on saved copies of the real pages (this test computer can't reach the site). The matching
+  of competitions to our leagues uses agones.gr's competition numbers, checked on one weekend's coupon.
+  OPAP's rules on the minimum number of selections per slip are not checked.
 - **Odds you type in** are only checked loosely, so mistakes in typing go straight into the comparison.
 - **The Flashscore reader** goes against Flashscore's terms, which forbid scraping. It's included only
   because you asked for it for private use. It depends on the site's current layout, and it was tested on
@@ -436,7 +482,7 @@ Good to know:
 ## 9. Running the tests
 
 ```powershell
-python -m pytest            # all 50 tests, about 10 seconds, no internet needed
+python -m pytest            # all 58 tests, about 10 seconds, no internet needed
 python -m pytest -v         # list each test by name
 ```
 
@@ -456,6 +502,8 @@ The tests use small, **made-up** leagues, so they don't need the real data. They
   the out-of-date warning.
 - **Flashscore reader**: dates without a year, odds-page addresses, choosing the bookmaker, team-name
   matching, skipping results already in the dataset, and the page-reading code (on hand-written sample pages).
+- **"What to play today"**: reading coupon rows and codes, Greek→Latin names (incl. ά-ι / ϊ), pairing
+  lookalike names correctly (Brighton vs Everton), no pairing across leagues or days, and the verdict rules.
 - **End to end**: the whole pipeline and the dashboard (every results folder) run on fake data.
 
 ---

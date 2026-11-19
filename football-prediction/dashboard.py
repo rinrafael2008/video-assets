@@ -153,6 +153,17 @@ with tab6:
         st.info("Run  python -m footy.study  to compare all main leagues.")
 
 with tab7:
+    today_files = sorted(config.OUTPUT_DIR.glob("today_*.csv"))
+    if today_files:
+        latest = today_files[-1]
+        st.subheader(f"OPAP coupon check: {latest.stem.replace('today_', '')}")
+        t = pd.read_csv(latest, dtype={"code": str})
+        cols = [c for c in ["code", "time", "home_gr", "away_gr", "OddHome", "OddDraw", "OddAway", "model_pH",
+                            "model_pD", "model_pA", "book_pH", "book_pD", "book_pA", "verdict", "reason"] if c in t]
+        st.dataframe(t[cols].round(3), hide_index=True, width="stretch")
+        n_play = int(t.verdict.astype(str).str.startswith("PLAY").sum()) if "verdict" in t else 0
+        (st.success if n_play == 0 else st.info)(
+            "Verdict: NO BET today." if n_play == 0 else f"{n_play} single(s) marked PLAY (flat 1 unit each).")
     st.subheader("Upcoming matches vs odds you entered (e.g. from Stoiximan)")
     if upcoming_file.exists():
         up = pd.read_csv(upcoming_file, parse_dates=["MatchDate"])

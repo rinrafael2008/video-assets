@@ -41,7 +41,7 @@ Attribution: "Club Football Match Data" © 2025 xgabora, MIT licence. Source dat
   with no conditions. Downloaded by `python -m footy.international --download`, not redistributed here.
 - Contains results only (no odds).
 
-# Stoiximan, Flashscore and other betting/score sites
+# Stoiximan, Flashscore, agones.gr and other betting/score sites
 
 These sites give no licence to reuse their data, and Flashscore's terms (personal use only) forbid
 scraping. **They are never used to train or evaluate the models.**
@@ -50,3 +50,7 @@ At the user's explicit request, for private personal use only, `footy/flashscore
 upcoming fixtures, the odds Flashscore displays (including Stoiximan.gr when viewed from Greece) and
 recent results. It reads a few pages slowly and saves them only to the git-ignored `outputs/` folder.
 Using it is your own decision and responsibility. Do not publish, share or sell anything it collects.
+
+`footy/agones.py` (also at the user's request, for private use) reads one page per run from agones.gr:
+the day's OPAP coupon codes and odds. The same rules apply: not used for training or evaluation, saved only
+to the git-ignored `outputs/` folder, not to be shared or published.

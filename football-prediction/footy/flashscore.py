@@ -206,7 +206,8 @@ def rows_to_fixture_table(division, results, upcoming, history, aliases, today) 
         if when is None or not (h and a):
             continue
         row = {"Division": division, "MatchDate": pd.Timestamp(when).date(), "HomeTeam": h, "AwayTeam": a,
-               "Source": "Flashscore fixture", "FlashscoreURL": r.get("url", "")}
+               "Source": "Flashscore fixture", "FlashscoreURL": r.get("url", ""),
+               "FlashscoreHome": r["home"].strip(), "FlashscoreAway": r["away"].strip()}
         if r.get("bookmaker"):
             row.update(Bookmaker=r["bookmaker"], OddHome=r["odds"][0], OddDraw=r["odds"][1], OddAway=r["odds"][2])
         out.append(row)
