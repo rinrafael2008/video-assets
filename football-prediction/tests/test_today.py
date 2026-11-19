@@ -132,9 +132,32 @@ def test_run_uses_best_price_for_value_and_keeps_opap_price(tmp_path, monkeypatc
     out = today.run(date(2009, 8, 1), fetch_coupon=coupon_for, get_flashscore=flashscore_with_url, history_raw=matches,
                     leagues_dir=tmp_path / "leagues", aliases={"Ομάδα Ένα": "Team1", "Ομάδα Δύο": "Team2"},
                     verbose=False, get_odds=lambda urls: {u: odds_pages[u] for u in urls},
-                    my_bookmakers=["Stoiximan"])
+                    my_bookmakers=["Stoiximan"], get_lineups=lambda urls: {u: {} for u in urls})
     r = out.iloc[0]
     assert (r.OddHome, r.OddDraw, r.OddAway) == (3.3, 3.6, 2.5)          # coupon had 3.0 / 3.4 / 2.4
     assert r.best_by_1 == "Stoiximan.gr" and float(r.opap_1) == 3.0
     assert r.bookmaker_margin < r.opap_margin
     assert abs(r.ev_H - (r.model_pH * 3.3 - 1)) < 1e-9
+
+
+def test_team_news_is_shown_and_saved(tmp_path, monkeypatch, matches, capsys):
+    monkeypatch.setattr("footy.config.OUTPUT_DIR", tmp_path)
+    write_league(tmp_path / "leagues" / "England", None, 0, 0)
+
+    def flashscore_with_url(divisions, day):
+        t, p = fake_flashscore(divisions, day)
+        return t.assign(FlashscoreURL="https://fs/match/1"), p
+
+    news = {"lineup_status": "predicted", "home_out": [("A. Player", "Injury"), ("B. Player", "Red Card"),
+                                                       ("C. Player", "Illness")],
+            "away_out": [], "home_doubtful": [], "away_doubtful": [("D. Player", "Knock")],
+            "home_xi_rating": 6.6, "away_xi_rating": 7.2}
+    out = today.run(date(2009, 8, 1), fetch_coupon=coupon_for, get_flashscore=flashscore_with_url, history_raw=matches,
+                    leagues_dir=tmp_path / "leagues", aliases={"Ομάδα Ένα": "Team1", "Ομάδα Δύο": "Team2"},
+                    get_odds=lambda urls: {u: [] for u in urls}, get_lineups=lambda urls: {u: news for u in urls})
+    printed = capsys.readouterr().out
+    assert "OUT A. Player (Injury), B. Player (Red Card), C. Player (Illness)" in printed
+    assert "doubtful D. Player (Knock)" in printed and "6.6 vs 7.2" in printed
+    assert "many absences" in printed
+    saved = pd.read_csv(tmp_path / "today_2009-08-01.csv")
+    assert saved.n_home_out.iloc[0] == 3 and "news" not in saved.columns

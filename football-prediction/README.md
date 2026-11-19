@@ -454,6 +454,41 @@ Across improvements 1 and 3, the gap to the bookmaker shrank by about **half** i
 0.0098), France and Spain. The model is still behind everywhere, and no betting rule survives the
 unseen seasons, so the verdict is still NO BET.
 
+### Improvement 4: match importance and team news
+
+**Match importance (in the model, where validation wants it).** From the league table *before* each
+match: table position, points behind the leader, points above the relegation zone (both divided by
+the points still available, so "6 behind with 2 games left" ≠ "6 behind with 30 left"), how far the
+season is, and a "nothing to play for" flag (late season, can't reach the top, can't go down). The league
+format (teams, matches per team, e.g. Scotland's 38 games with 12 teams, Belgium's play-offs) is taken
+from the *previous* season, so nothing from the future leaks in; the leakage test caught a first version
+that did. Every model now competes in four versions (basic / + shots / + table / + both) and validation
+picks per league.
+
+Result on the unseen test seasons: **no reliable gain.** Scotland improved a little (gap 0.0208 → 0.0194),
+and so did the pooled model (0.0109 → 0.0106). Spain, Germany and Portugal got slightly worse where
+validation chose the table version. Bookmakers already price relegation battles and dead rubbers.
+
+**Team news (shown, not used by the model).** `footy.today` now opens each match's Flashscore line-ups
+page and shows who is **out** (injured, suspended, ill) and **doubtful**, whether the line-ups are
+*predicted* or *official* (official ones appear about 1 hour before kickoff), and the average player rating
+of each XI. Example (21/11/2026):
+
+```
+[574] 19:30  Καλαμάτα - ΑΕΚ
+      model       1 10%  X 21%  2 70%
+      team news   Καλαμάτα: OUT Vargas K. (Muscle Injury)
+      team news   ΑΕΚ: OUT Joao Mario (Illness), Marin R. (Red Card), Zubkov O. (Broken Leg) | doubtful Alexiou C. (Injury)
+      line-ups    predicted, average player rating 6.6 vs 7.2
+      !! many absences: the model does NOT know about these. Trust its numbers less here.
+```
+
+Why the model doesn't use team news: to learn how much a missing player matters, it needs thousands of
+past matches *with* their absences, and no dataset we have includes that. Any adjustment invented without
+that history would be a guess dressed up as a calculation. So the information is shown for **you** to
+weigh, with a warning when a team misses 3 or more players. New signings and transfers aren't covered;
+the Elo summer adjustment only partly reflects squad changes. `--no-team-news` skips these pages.
+
 ### 7c. National teams (`python -m footy.international`)
 
 Train 1990–2013, validation 2014–2018, test 2019 to November 2026 (7,874 matches). Earlier matches back
@@ -567,8 +602,8 @@ Options: `--date 2026-11-22` (another day), `--leagues G1 E0` (only some leagues
   Getting it would need accounts everywhere, perfect timing, and no betting limits.
 - **The backtest is simplified**: no betting limits, no stake restrictions or banned accounts, no
   odds moving after you bet, no taxes or fees, and every bet is assumed to be accepted at the listed price.
-- **Simple features**: no team news, injuries, line-ups, expected goals (xG), transfers, weather or
-  motivation. Cup and European matches are not in the data, so "rest days" is not exact.
+- **What the model still doesn't use**: injuries, suspensions and line-ups (shown next to each match in
+  `footy.today`, but not learned from; there's no history of them), expected goals (xG), transfers and weather. Cup and European matches are not in the data, so "rest days" is not exact.
 - **Elo settings** were tuned once, on the validation seasons, as one shared setting for all leagues
   (`python -m footy.tune_elo`). Re-run it after `footy.update` adds more seasons; per-league tuning might
   help a little more, but would risk fitting noise in small leagues.
@@ -608,7 +643,7 @@ Options: `--date 2026-11-22` (another day), `--leagues G1 E0` (only some leagues
 ## 9. Running the tests
 
 ```powershell
-python -m pytest            # all 71 tests, about 15 seconds, no internet needed
+python -m pytest            # all 74 tests, about 20 seconds, no internet needed
 python -m pytest -v         # list each test by name
 ```
 
@@ -630,6 +665,8 @@ The tests use small, **made-up** leagues, so they don't need the real data. They
   matching, skipping results already in the dataset, and the page-reading code (on hand-written sample pages).
 - **"What to play today"**: reading coupon rows and codes, Greek→Latin names (incl. ά-ι / ϊ), pairing
   lookalike names correctly (Brighton vs Everton), no pairing across leagues or days, and the verdict rules.
+- **Match importance and team news**: table position / gaps / "nothing to play for", reading
+  injured / suspended / doubtful players and line-up ratings, and the many-absences warning.
 - **Promoted teams**: detected from the division change, flagged for the whole season, rating shift
   applied once (when switched on).
 - **Data updater**: reading old and new Football-Data CSV layouts, learning team-name translations from

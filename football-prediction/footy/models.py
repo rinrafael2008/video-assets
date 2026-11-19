@@ -19,9 +19,15 @@ from sklearn.linear_model import LogisticRegression, PoissonRegressor
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-from footy.features import FEATURE_COLUMNS, SHOT_COLUMNS
+from footy.features import CONTEXT_COLUMNS, FEATURE_COLUMNS, SHOT_COLUMNS
 
-BASIC_FEATURES = [c for c in FEATURE_COLUMNS if c not in SHOT_COLUMNS]
+BASIC_FEATURES = [c for c in FEATURE_COLUMNS if c not in SHOT_COLUMNS + CONTEXT_COLUMNS]
+FEATURE_SETS = [   # every model competes with each of these; validation picks per league
+    ("", BASIC_FEATURES),
+    (" + shots", BASIC_FEATURES + SHOT_COLUMNS),
+    (" + table", BASIC_FEATURES + CONTEXT_COLUMNS),
+    (" + shots + table", BASIC_FEATURES + SHOT_COLUMNS + CONTEXT_COLUMNS),
+]
 
 OUTCOMES = ["H", "D", "A"]   # column order of every probability array in this project
 
@@ -73,12 +79,13 @@ class SklearnOutcomeModel:
 def candidate_outcome_models(features=None):
     """A few reasonable settings. The validation set decides which one wins.
 
-    By default every model competes twice: with the shot features and without them.
-    Where a league has little shot history (e.g. Greece: only since 2017), the version
-    without shots usually wins validation, which is exactly what we want.
+    By default every model competes in four versions (FEATURE_SETS): basic inputs, + shots,
+    + league-table context (match importance), + both. Where a league has little shot
+    history (e.g. Greece: only since 2017), a version without shots usually wins
+    validation, which is exactly what we want.
     `features` = one fixed feature list instead (used for national teams).
     """
-    variants = [("", list(features))] if features is not None else [("", BASIC_FEATURES), (" + shots", FEATURE_COLUMNS)]
+    variants = [("", list(features))] if features is not None else FEATURE_SETS
     out = []
     for suffix, feats in variants:
         out += [

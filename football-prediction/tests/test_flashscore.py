@@ -115,3 +115,18 @@ def test_page_extraction_javascript(page):
     odds = page.evaluate(fs.ODDS_JS)
     assert odds["start"].strip() == "21.11.2026 19:30"
     assert fs.choose_bookmaker(odds["rows"], "Stoiximan") == ("Stoiximan.gr", [8.25, 5.0, 1.37])
+
+
+def test_team_news_summary():
+    page = {"groups": [{"group": "Predicted lineups", "home": [{"name": "X", "note": ""}], "away": []},
+                       {"group": "Will not play", "home": [{"name": "Vargas K.", "note": "Muscle Injury"}],
+                        "away": [{"name": "Marin R.", "note": "Red Card"}, {"name": "Zubkov O.", "note": "Broken Leg"}]},
+                       {"group": "Questionable", "home": [], "away": [{"name": "Alexiou C.", "note": "Injury"}]}],
+            "ratings": ["6.6", "7.2"]}
+    n = fs.team_news(page)
+    assert n["lineup_status"] == "predicted"
+    assert n["home_out"] == [("Vargas K.", "Muscle Injury")] and len(n["away_out"]) == 2
+    assert n["away_doubtful"] == [("Alexiou C.", "Injury")]
+    assert (n["home_xi_rating"], n["away_xi_rating"]) == (6.6, 7.2)
+    assert fs.team_news({"groups": [], "ratings": []})["lineup_status"] == "none"
+    assert fs.lineups_url("https://x/match/football/a/b/?mid=1") == "https://x/match/football/a/b/summary/lineups/?mid=1"

@@ -45,3 +45,19 @@ def test_promotion_flags_and_shift():
 def test_no_shift_when_setting_is_zero():
     f = build_features(two_seasons(), Elo(promotion_shift=0, season_regression=0))
     assert abs(f[(f.Season == 2021) & (f.HomeTeam == "Up")].iloc[0].elo_home - 1500) < 1
+
+
+def test_table_context():
+    from footy.features import table_context
+    # 6-team league: 10 games each. Leader 25 pts, team "Mid" 15, bottom 3 have 5, 4, 3.
+    table = {"Top": [25, 9, 15], "Second": [20, 9, 8], "Mid": [15, 9, 0],
+             "Low1": [5, 9, -5], "Low2": [4, 9, -8], "Low3": [3, 9, -10]}
+    c = table_context(table, "Mid", n_teams=6)
+    assert c["table_pos"] == 2 / 5
+    assert c["title_gap"] == (25 - 15) / (3 * 1 + 1)       # 10 points behind with 3 points left: impossible
+    assert c["drop_margin"] == (15 - 5) / 4                 # 10 points above the drop line
+    assert c["nothing_to_play"] == 1.0
+    top = table_context(table, "Top", n_teams=6)
+    assert top["title_gap"] == 0 and top["nothing_to_play"] == 0.0
+    early = table_context({}, "New", n_teams=20)
+    assert early["progress"] == 0 and early["nothing_to_play"] == 0.0

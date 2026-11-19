@@ -16,7 +16,11 @@
 Personal use only (agones.gr and Flashscore). Research only: this never places a bet.
 Before all that it refreshes the current season from Football-Data.co.uk (footy.update),
 so only the last few days need Flashscore.
-Options:  --date 2026-11-22   --leagues G1 E0   --opap-only   --no-flashscore   --no-update
+It also shows each match's TEAM NEWS from Flashscore: injured / suspended / doubtful players,
+predicted or official line-ups and their average player rating. The model itself does not use
+these (there's no history to learn their effect from), so they are shown for you to judge, with
+a warning when a team misses 3 or more players.
+Options:  --date 2026-11-22   --leagues G1 E0   --opap-only   --no-team-news   --no-flashscore   --no-update
 """
 from __future__ import annotations
 
@@ -48,6 +52,27 @@ def best_prices(rows: list[dict], allowed: list[str]) -> tuple[list[float], list
             if v and (best[k] is None or v > best[k]):
                 best[k], who[k] = v, name
     return best, who
+
+
+def flashscore_lineups(urls: list[str]) -> dict:
+    """{match url: team news} from each match's Flashscore line-ups page."""
+    from footy import flashscore as fs
+    reader = fs.Reader()
+    out = {}
+    try:
+        for u in urls:
+            out[u] = fs.team_news(reader.lineups(u))
+    finally:
+        reader.close()
+    return out
+
+
+def _players(lst, limit=3) -> str:
+    shown = ", ".join(f"{n} ({why})" if why else n for n, why in lst[:limit])
+    return shown + (f" +{len(lst) - limit} more" if len(lst) > limit else "")
+
+
+MANY_ABSENCES = 3
 
 
 def flashscore_odds(urls: list[str]) -> dict:
@@ -132,7 +157,7 @@ def flashscore_tables(divisions, day):
 
 def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_flashscore=None,
         history_raw=None, leagues_dir=None, aliases=None, verbose=True, compare_prices=True, get_odds=None,
-        my_bookmakers=None):
+        my_bookmakers=None, read_team_news=True, get_lineups=None):
     say = print if verbose else (lambda *a, **k: None)
     fetch_coupon = fetch_coupon or (lambda d: agones.parse_coupon(agones.fetch(d)))
     get_flashscore = get_flashscore or flashscore_tables
@@ -178,6 +203,13 @@ def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_fla
         if urls:
             say(f"Comparing prices: reading {len(urls)} odds pages on Flashscore (slowly)...")
             other_odds = (get_odds or flashscore_odds)(urls)
+    news = {}
+    if read_team_news and use_flashscore:
+        urls = [fixtures.loc[j].get("FlashscoreURL") for j in links.values()]
+        urls = [u for u in urls if isinstance(u, str) and u]
+        if urls:
+            say(f"Reading team news: {len(urls)} line-up pages on Flashscore (slowly)...")
+            news = (get_lineups or flashscore_lineups)(urls)
     rows, prices = [], {}
     for i, j in links.items():
         c, f = covered.loc[i], fixtures.loc[j]
@@ -187,6 +219,15 @@ def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_fla
                                "best_by_1": who[0], "best_by_X": who[1], "best_by_2": who[2],
                                "n_bookmakers": sum(any(a.lower() in q["bookmaker"].lower() for a in allowed)
                                                    for q in quotes)}
+        n = news.get(f.get("FlashscoreURL"), {})
+        prices[str(c.code)].update({
+            "lineup_status": n.get("lineup_status", "not read"),
+            "home_out": _players(n.get("home_out", []), 99), "away_out": _players(n.get("away_out", []), 99),
+            "home_doubtful": _players(n.get("home_doubtful", []), 99),
+            "away_doubtful": _players(n.get("away_doubtful", []), 99),
+            "n_home_out": len(n.get("home_out", [])), "n_away_out": len(n.get("away_out", [])),
+            "home_xi_rating": n.get("home_xi_rating"), "away_xi_rating": n.get("away_xi_rating"),
+            "news": n})
         rows.append({"Division": c.division, "MatchDate": pd.Timestamp(day).date(), "HomeTeam": f.HomeTeam,
                      "AwayTeam": f.AwayTeam, "OddHome": best[0], "OddDraw": best[1], "OddAway": best[2],
                      "Bookmaker": f"OPAP code {c.code}"})
@@ -214,6 +255,18 @@ def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_fla
         say(f"      market      1 {r.book_pH:.0%}  X {r.book_pD:.0%}  2 {r.book_pA:.0%}   (chances, margin removed)")
         say(f"      model       1 {r.model_pH:.0%}  X {r.model_pD:.0%}  2 {r.model_pA:.0%}   "
             f"expected goals {r.exp_home_goals:.1f}-{r.exp_away_goals:.1f}")
+        n = r.news if isinstance(r.news, dict) else {}
+        if n:
+            for label, team, out_, doubt in (("home", r.home_gr, n.get("home_out", []), n.get("home_doubtful", [])),
+                                             ("away", r.away_gr, n.get("away_out", []), n.get("away_doubtful", []))):
+                if out_ or doubt:
+                    say(f"      team news   {team}: " + (f"OUT {_players(out_)}" if out_ else "") +
+                        (" | " if out_ and doubt else "") + (f"doubtful {_players(doubt)}" if doubt else ""))
+            if n.get("home_xi_rating") and n.get("away_xi_rating"):
+                say(f"      line-ups    {n['lineup_status']}, average player rating {n['home_xi_rating']:.1f} vs "
+                    f"{n['away_xi_rating']:.1f}")
+            if max(len(n.get("home_out", [])), len(n.get("away_out", []))) >= MANY_ABSENCES:
+                say("      !! many absences: the model does NOT know about these. Trust its numbers less here.")
         say(f"      -> {r.verdict}   ({r.reason})")
     if len(skipped):
         say(f"\nSkipped (team names not matched safely): " +
@@ -226,7 +279,7 @@ def run(day: date, leagues=None, use_flashscore=True, fetch_coupon=None, get_fla
                 if n_play == 0 else f"VERDICT: {n_play} single(s) marked PLAY above. Flat 1 unit each, no doubles/trebles."))
     out = config.OUTPUT_DIR / f"today_{day.isoformat()}.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
-    pred.to_csv(out, index=False)
+    pred.drop(columns=["news"], errors="ignore").to_csv(out, index=False)
     say(f"Saved {out}.  Research only - this program never places bets.")
     return pred
 
@@ -238,6 +291,7 @@ def main():
     parser.add_argument("--no-flashscore", action="store_true", help="skip Flashscore (not recommended)")
     parser.add_argument("--no-update", action="store_true", help="skip the Football-Data.co.uk refresh")
     parser.add_argument("--opap-only", action="store_true", help="don't compare prices (faster: no odds pages)")
+    parser.add_argument("--no-team-news", action="store_true", help="don't read line-ups / injuries (faster)")
     args = parser.parse_args()
     if not args.no_update:
         from footy import update
@@ -250,7 +304,7 @@ def main():
         except Exception as e:      # no internet, site down, ...: carry on with what we have
             print(f"WARNING: Football-Data.co.uk update failed ({e}); continuing with saved data.")
     run(date.fromisoformat(args.date), args.leagues, use_flashscore=not args.no_flashscore,
-        compare_prices=not args.opap_only)
+        compare_prices=not args.opap_only, read_team_news=not args.no_team_news)
 
 
 if __name__ == "__main__":

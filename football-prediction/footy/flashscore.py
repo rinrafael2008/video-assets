@@ -86,6 +86,50 @@ ODDS_JS = """() => ({
 })"""
 
 
+# Team news from a match's line-ups page: groups such as "Predicted lineups" / "Starting Lineups",
+# "Will not play" (injured, suspended, ill) and "Questionable", each with home (left) and away
+# (right) players; plus the average player rating badges (first two = the two teams' averages).
+LINEUPS_JS = r"""() => ({
+    groups: Array.from(document.querySelectorAll('[data-testid="wcl-lineupsGroup"]')).map(g => {
+        const head = g.querySelector('[data-testid="wcl-headerSection-text"]');
+        const side = s => Array.from(g.querySelectorAll('[data-testid="wcl-lineupsParticipantGeneral-' + s + '"]')).map(p => {
+            const texts = Array.from(p.querySelectorAll('[data-testid="wcl-simple-text-01"]')).map(e => e.innerText.trim());
+            return {name: texts.find(t => /[A-Za-z]/.test(t)) || '',
+                    note: (p.querySelector('[data-testid="wcl-caption-05"]') || {}).innerText || ''};
+        });
+        return {group: head ? head.innerText.trim() : '', home: side('left'), away: side('right')};
+    }),
+    ratings: Array.from(document.querySelectorAll('[data-testid="wcl-badgeRating"]')).slice(0, 2).map(e => e.innerText.trim())
+})"""
+
+
+def lineups_url(match_url: str) -> str:
+    """.../match/football/a-x/b-y/?mid=ID  ->  .../match/football/a-x/b-y/summary/lineups/?mid=ID"""
+    parts = urlsplit(match_url)
+    path = parts.path if parts.path.endswith("/") else parts.path + "/"
+    return f"{parts.scheme}://{parts.netloc}{path}summary/lineups/" + (f"?{parts.query}" if parts.query else "")
+
+
+def team_news(page: dict) -> dict:
+    """Summarise LINEUPS_JS output: who is out / doubtful, line-up status, average player ratings."""
+    out = {"lineup_status": "none", "home_out": [], "away_out": [], "home_doubtful": [], "away_doubtful": [],
+           "home_xi_rating": None, "away_xi_rating": None}
+    for g in page.get("groups", []):
+        name = g.get("group", "").lower()
+        if "lineup" in name:
+            out["lineup_status"] = "predicted" if "predicted" in name else "official"
+        elif "will not play" in name or "missing" in name:
+            out["home_out"] += [(p["name"], p["note"]) for p in g.get("home", []) if p.get("name")]
+            out["away_out"] += [(p["name"], p["note"]) for p in g.get("away", []) if p.get("name")]
+        elif "questionable" in name or "doubtful" in name:
+            out["home_doubtful"] += [(p["name"], p["note"]) for p in g.get("home", []) if p.get("name")]
+            out["away_doubtful"] += [(p["name"], p["note"]) for p in g.get("away", []) if p.get("name")]
+    ratings = [to_float(r) if to_float(r) else None for r in page.get("ratings", [])]
+    if out["lineup_status"] != "none" and len(ratings) == 2:
+        out["home_xi_rating"], out["away_xi_rating"] = ratings
+    return out
+
+
 # ---------------------------------------------------------------------------------
 # Pure helpers (no browser needed; covered by tests/test_flashscore.py)
 # ---------------------------------------------------------------------------------
@@ -266,6 +310,11 @@ class Reader:
             except Exception:
                 break
         return self.page.evaluate(FIXTURES_JS)
+
+    def lineups(self, match_url):
+        if not self._open(lineups_url(match_url), '[data-testid="wcl-lineupsGroup"]', timeout=10000):
+            return {"groups": [], "ratings": []}
+        return self.page.evaluate(LINEUPS_JS)
 
     def odds(self, match_url):
         if not self._open(odds_url(match_url), ".ui-table__row", timeout=10000):
