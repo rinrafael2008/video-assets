@@ -31,8 +31,13 @@ def actual_home_score(home_goals: int, away_goals: int) -> float:
 
 class Elo:
     def __init__(self, k=config.ELO_K, home_advantage=config.ELO_HOME_ADVANTAGE,
-                 start=config.ELO_START, season_regression=config.ELO_SEASON_REGRESSION):
+                 start=config.ELO_START, season_regression=config.ELO_SEASON_REGRESSION,
+                 promotion_shift=config.ELO_PROMOTION_SHIFT):
         self.k = k
+        # Rating points added when a team goes UP a division (usually negative: the champion of
+        # the 2nd division is weaker than its rating, earned against weaker teams, suggests).
+        # A relegated team gets the opposite.
+        self.promotion_shift = promotion_shift
         self.home_advantage = home_advantage
         self.start = start
         self.season_regression = season_regression
@@ -45,6 +50,9 @@ class Elo:
             self.ratings[team] = (float(np.percentile(list(self.ratings.values()), 20))
                                   if len(self.ratings) >= 10 else self.start)
         return self.ratings[team]
+
+    def change_division(self, team: str, promoted: bool) -> None:
+        self.ratings[team] = self.rating(team) + (self.promotion_shift if promoted else -self.promotion_shift)
 
     def new_season(self) -> None:
         """Pull everyone a little towards the average (squads change in summer)."""

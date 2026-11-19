@@ -37,11 +37,15 @@ TRAIN_LAST_SEASON = 2017     # train:      2001/02 .. 2017/18
 VALID_LAST_SEASON = 2021     # validation: 2018/19 .. 2021/22
 #                              test:       2022/23 .. latest
 
-# Elo settings
+# Elo settings, tuned on the VALIDATION seasons with `python -m footy.tune_elo` (results in
+# outputs/elo_tuning.csv). Validation log loss of the Elo baseline: 1.0224 with the old
+# hand-picked settings (K 20, home 60, pull 0.2) -> 1.0179 with these.
 ELO_START = 1500.0
-ELO_K = 20.0
-ELO_HOME_ADVANTAGE = 60.0
-ELO_SEASON_REGRESSION = 0.2  # pull ratings 20% back towards the average at the start of every season
+ELO_K = 15.0                 # how fast ratings react to a result
+ELO_HOME_ADVANTAGE = 80.0    # anything from 70 to 110 scored the same; the model re-learns it anyway
+ELO_SEASON_REGRESSION = 0.05 # pull ratings 5% back towards the average at the start of every season
+ELO_PROMOTION_SHIFT = 0.0    # rating change for a promoted team: tuning found 0 best (the model
+                             # gets "promoted"/"relegated" flags instead)
 
 # Betting simulation (hypothetical, flat stake, no real money)
 STAKE = 1.0

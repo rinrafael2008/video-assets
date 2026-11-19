@@ -33,6 +33,8 @@ FEATURE_COLUMNS = [
     "home_rest_days", "away_rest_days",
     "home_games_played", "away_games_played",  # how much history we have (capped at 10)
     "is_top_division",
+    # Moved division this season (known before the season starts): 1 = yes, 0 = no.
+    "home_promoted", "away_promoted", "home_relegated", "away_relegated",
     # Shots: a better sign of how well a team really plays than goals, which are partly luck.
     # Averages over each team's previous 8 matches (missing in leagues/seasons without shot data).
     "home_shots_for", "home_shots_against", "home_sot_for", "home_sot_against",
@@ -41,9 +43,16 @@ FEATURE_COLUMNS = [
 SHOT_COLUMNS = FEATURE_COLUMNS[-8:]
 
 
-def build_features(matches: pd.DataFrame, elo: Elo | None = None) -> pd.DataFrame:
-    """Return a copy of `matches` with FEATURE_COLUMNS added (one row per match)."""
+def tier(division: str) -> int:
+    return 1 if division in config.TOP_DIVISIONS else 2
+
+
+def build_features(matches: pd.DataFrame, elo: Elo | None = None, only_elo: bool = False) -> pd.DataFrame:
+    """Return a copy of `matches` with FEATURE_COLUMNS added (one row per match).
+    only_elo=True computes just the Elo columns (fast; used to tune the Elo settings)."""
     elo = elo or Elo()
+    team_season: dict[str, tuple[int, str]] = {}   # team -> (season, division) of its latest match
+    moved: dict[str, int] = {}                      # team -> +1 promoted / -1 relegated / 0 this season
     history = defaultdict(lambda: deque(maxlen=FORM_WINDOW))  # team -> (points, gf, ga)
     shots = defaultdict(lambda: deque(maxlen=SHOTS_WINDOW))   # team -> (shots for/against, on target for/against)
     games_played = defaultdict(int)
@@ -57,12 +66,30 @@ def build_features(matches: pd.DataFrame, elo: Elo | None = None) -> pd.DataFram
                 elo.new_season()
             current_season = m.Season
 
+        # Promotion / relegation: decided at a team's first match of a season, by comparing its
+        # division with last season's. Known before the season starts, so no leakage.
+        for team in (m.HomeTeam, m.AwayTeam):
+            last = team_season.get(team)
+            if last is None or last[0] != m.Season:
+                change = 0 if last is None else (tier(last[1]) - tier(m.Division))   # +1 up, -1 down
+                if change:
+                    elo.change_division(team, promoted=change > 0)
+                moved[team] = change
+                team_season[team] = (m.Season, m.Division)
+
         # ---- 1. features: read state BEFORE the match --------------------------
         f = {}
         eh, ea = elo.rating(m.HomeTeam), elo.rating(m.AwayTeam)
         f["elo_home"], f["elo_away"] = eh, ea
         f["elo_diff"] = eh + elo.home_advantage - ea
+        if only_elo:
+            rows.append(f)
+            if not (pd.isna(m.FTHome) or pd.isna(m.FTAway)):
+                elo.update(m.HomeTeam, m.AwayTeam, int(m.FTHome), int(m.FTAway))
+            continue
         for side, team in (("home", m.HomeTeam), ("away", m.AwayTeam)):
+            f[f"{side}_promoted"] = float(moved.get(team, 0) > 0)
+            f[f"{side}_relegated"] = float(moved.get(team, 0) < 0)
             h = history[team]
             if h:
                 arr = np.array(h, dtype=float)
@@ -97,5 +124,6 @@ def build_features(matches: pd.DataFrame, elo: Elo | None = None) -> pd.DataFram
         last_date[m.HomeTeam] = last_date[m.AwayTeam] = m.MatchDate
         elo.update(m.HomeTeam, m.AwayTeam, hg, ag)
 
-    feats = pd.DataFrame(rows, index=matches.index)[FEATURE_COLUMNS]
+    cols = ["elo_diff", "elo_home", "elo_away"] if only_elo else FEATURE_COLUMNS
+    feats = pd.DataFrame(rows, index=matches.index)[cols]
     return pd.concat([matches, feats], axis=1)
