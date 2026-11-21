@@ -52,14 +52,16 @@ def main():
 
     import sfx
     aac = os.path.join(out_dir, "mix.m4a")
-    sfx.mix_from_cues(wav, total, cues, aac, workdir=out_dir); step("audio mix + loudnorm", T0)
+    sfx.mix_from_cues(wav, total, cues, aac, workdir=out_dir, music_fn=getattr(m, "MUSIC", None), voice_fx=getattr(m, "VOICE_FX", None), master=getattr(m, "MASTER", None)); step("audio mix + loudnorm", T0)
 
     n = int(round(total * eng.FPS)); mid = n // 2
     kw = dict(nsub=1, shutter=0.0, crf=27, scale=0.5) if draft else dict(nsub=5, shutter=0.6, crf=18, scale=1.0)
+    if not draft: kw.update(getattr(m, "RENDER", {}))
     global _FN, _KW, _DIR; _FN, _KW, _DIR = frame_fn, kw, out_dir
-    with mp.get_context("fork").Pool(2) as p: p.map(_work, [(0, 0, mid), (1, mid, n)])
+    nproc = max(2, min(int(os.environ.get("NPROC", os.cpu_count() or 2)), 6)); bounds = [round(n * k / nproc) for k in range(nproc + 1)]
+    with mp.get_context("fork").Pool(nproc) as p: p.map(_work, [(i, bounds[i], bounds[i + 1]) for i in range(nproc)])
     step(f"render {n} frames ({'draft' if draft else 'final'})", T0)
-    open(f"{out_dir}/list.txt", "w").write(f"file '{out_dir}/seg0.mp4'\nfile '{out_dir}/seg1.mp4'\n")
+    open(f"{out_dir}/list.txt", "w").write("".join(f"file '{out_dir}/seg{i}.mp4'\n" for i in range(nproc)))
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", f"{out_dir}/list.txt", "-i", aac,
                     "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "copy", "-shortest", "-movflags", "+faststart", out], check=True)
     step(f"muxed -> {out}", T0)
