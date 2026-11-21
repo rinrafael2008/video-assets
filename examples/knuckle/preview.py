@@ -2,7 +2,7 @@ import sys, skia, json
 sys.path.insert(0, '/home/claude/work/engine')
 import eng, scenes
 from PIL import Image
-eng.ENV = eng.Env('/home/claude/work/engine/narration.wav')
+eng.load_assets('/home/claude/work/engine/narration.wav', '/home/claude/work/engine/mouth.npz')
 times = [float(x) for x in sys.argv[2:]]
 out = sys.argv[1]
 ims = []

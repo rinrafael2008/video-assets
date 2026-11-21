@@ -222,9 +222,35 @@ class Env:
 
 ENV = None
 CAPT = None
+MOUTH = None   # viseme track from lipsync.py
+NODS = []      # word-onset times for small head nods
+
+class MouthTrack:
+    def __init__(self, npz):
+        d = np.load(npz); self.o, self.w, self.t, self.rate = d["open"], d["wide"], d["teeth"], float(d["rate"])
+    def at(self, t):
+        x = t * self.rate
+        if x < 0 or x >= len(self.o) - 1: return 0.0, 1.0, 0.0
+        i = int(x); f = x - i
+        g = lambda a: float(a[i] * (1 - f) + a[i + 1] * f)
+        return g(self.o), g(self.w), g(self.t)
+
 def mouth_at(t):
+    if MOUTH is not None: return MOUTH.at(t)[0]
     e = ENV(t) if ENV else 0.0
     return cl((e - 0.12) * 1.5, 0, 1)
+
+def mouth_params(t):
+    if MOUTH is not None: return MOUTH.at(t)
+    return mouth_at(t), 1.0, 0.0
+
+def nod_at(t):
+    return sum(3.6 * math.exp(-16 * (t - w)) for w in NODS if 0 <= t - w < 0.35)
+
+def load_assets(wav, npz=None):
+    global ENV, MOUTH
+    ENV = Env(wav)
+    if npz: MOUTH = MouthTrack(npz)
 
 
 def blink_at(t, period=2.9, off=0.6):
@@ -251,7 +277,7 @@ STROKE = 17
 def stick(c, x, y, s=1.0, *, hip=(0, 0), lean=0.0, tilt=0.0, hl=None, hr=None, fl=None, fr=None,
           mouth=0.0, smile=0.35, eyes=1.0, look=(0.0, 0.0), brow=0.0, browup=0.0, squash=0.0, flip=1,
           outfit=None, fists=False, alpha=1.0, shadow=True, o_mouth=False, sweat=0.0, head_r=80,
-          bend_arm=1, bend_leg=-1, cheeks=0.0, arm_w=None):
+          bend_arm=1, bend_leg=-1, cheeks=0.0, arm_w=None, mwide=1.0, teeth=0.0, mouth_talk=False):
     """character origin = ground between feet. units before scale s. hl/hr/fl/fr: targets in local coords."""
     sw = arm_w or STROKE
     c.save(); c.translate(x, y); c.scale(s * flip * (1 + squash), s * (1 - squash))
@@ -307,12 +333,19 @@ def stick(c, x, y, s=1.0, *, hip=(0, 0), lean=0.0, tilt=0.0, hl=None, hr=None, f
     my = 36
     if o_mouth:
         oval(c, 0, my + 4, 14, 18, fill=BLACK, alpha=alpha)
-    elif mouth > 0.06:
-        mw = 24 + 8 * mouth; mh = 5 + 30 * mouth
-        oval(c, 0, my + mh * 0.3, mw, mh, fill=BLACK, alpha=alpha)
-        if mouth > 0.45: oval(c, 0, my + mh * 0.75, mw * 0.55, mh * 0.35, fill="#FF6B81", alpha=alpha)
+    elif mouth > 0.05:
+        hw = (19 + 8 * mouth) * mwide; mh = 3 + 31 * mouth
+        cyc = my + mh * 0.3
+        p = skia.Path(); p.addOval(skia.Rect(-hw, cyc - mh, hw, cyc + mh))
+        c.drawPath(p, paint(BLACK, alpha))
+        c.save(); c.clipPath(p, True)
+        if teeth > 0.15: c.drawRect(skia.Rect(-hw, cyc - mh, hw, cyc - mh + 4 + 11 * teeth * min(1.0, mouth * 2.5)), paint(WHITE, alpha))
+        if mouth > 0.4 and teeth < 0.6: oval(c, 0, cyc + mh * 0.55, hw * 0.6, mh * 0.45, fill="#FF6B81", alpha=alpha)
+        c.restore()
+        c.drawPath(p, paint(BLACK, alpha, 5))
     else:
-        p = skia.Path(); p.moveTo(-26, my - 2 * smile); p.quadTo(0, my + 26 * smile + 2, 26, my - 2 * smile)
+        hwc = 26 * mwide
+        p = skia.Path(); p.moveTo(-hwc, my - 2 * smile); p.quadTo(0, my + 26 * smile * (0.4 if mouth_talk else 1.0) + 2, hwc, my - 2 * smile)
         c.drawPath(p, paint(BLACK, alpha, 8))
     if outfit == "doc":  # glasses
         for sgn in (-1, 1): circ(c, sgn * ex, ey, 24, fill=None, line=BLACK, lw=6, alpha=alpha)
@@ -415,18 +448,19 @@ class Cam:
 
 
 # ---------------------------------------------------------------- render loop
-def render_range(scene_fn, f0, f1, out, nsub=4, shutter=0.55, crf=19):
-    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "bgra", "-s", f"{W}x{H}",
+def render_range(scene_fn, f0, f1, out, nsub=4, shutter=0.55, crf=19, scale=1.0):
+    w_, h_ = int(W * scale) // 2 * 2, int(H * scale) // 2 * 2
+    ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "bgra", "-s", f"{w_}x{h_}",
                            "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf),
                            "-pix_fmt", "yuv420p", "-movflags", "+faststart", out], stdin=subprocess.PIPE)
-    surf = skia.Surface(W, H)
+    surf = skia.Surface(w_, h_)
     for f in range(f0, f1):
-        acc = np.zeros((H, W, 4), np.float32)
+        acc = np.zeros((h_, w_, 4), np.float32)
         globals()['CAPT'] = (f + 0.5) / FPS
         for s in range(nsub):
             t = (f + (s + 0.5) / nsub * shutter - shutter / 2 + 0.5 * 0) / FPS
             t = max(t, 0.0)
-            cv = surf.getCanvas(); cv.save(); scene_fn(cv, t); cv.restore()
+            cv = surf.getCanvas(); cv.save(); cv.scale(w_ / W, h_ / H); scene_fn(cv, t); cv.restore()
             acc += surf.makeImageSnapshot().toarray().astype(np.float32)
         ff.stdin.write((acc / nsub).astype(np.uint8).tobytes())
         if (f - f0) % 60 == 0: print("frame", f, flush=True)

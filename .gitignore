@@ -1,0 +1,4 @@
+projects/*/out/
+projects/*/*.wav
+projects/*/mouth.npz
+__pycache__/
