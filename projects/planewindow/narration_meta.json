@@ -1,0 +1,45 @@
+{
+ "total": 28.855,
+ "lines": [
+  {
+   "text": "Why do airplane windows have a tiny hole?",
+   "start": 0.0,
+   "end": 2.219
+  },
+  {
+   "text": "It's not a mistake. It's called a bleed hole.",
+   "start": 2.669,
+   "end": 4.951
+  },
+  {
+   "text": "Your window is really three panes, not one.",
+   "start": 5.351,
+   "end": 7.506
+  },
+  {
+   "text": "At cruising altitude, the cabin air is pressurized, so it pushes hard against the window.",
+   "start": 7.856,
+   "end": 12.699
+  },
+  {
+   "text": "The hole lets that pressure into the gap, so the outer pane takes the load.",
+   "start": 13.099,
+   "end": 16.939
+  },
+  {
+   "text": "The middle pane is the backup, in case the outer one is ever compromised.",
+   "start": 17.339,
+   "end": 21.221
+  },
+  {
+   "text": "The hole also lets moisture escape, so your window doesn't fog up.",
+   "start": 21.621,
+   "end": 25.376
+  },
+  {
+   "text": "So that little dot in your photos? It's a safety feature.",
+   "start": 25.826,
+   "end": 28.855
+  }
+ ]
+}
