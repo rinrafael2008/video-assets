@@ -1,0 +1,12 @@
+{"voice": "bm_george", "speed": 0.9, "lines": [
+["At three A M, my phone buzzed.", 0.4],
+["Motion detected. Bedroom.", 0.85],
+["I live alone. And I was standing in the kitchen.", 0.8],
+["I opened the app. My bed was empty. But on the edge of the mattress, something was sitting. Perfectly still. Facing the wall.", 0.9],
+["Then it turned its head. Slowly. Until it was looking straight into the camera.", 0.75],
+["And it smiled. Too wide.", 0.95],
+["My phone buzzed again. Motion detected. Stairs.", 0.7],
+["Motion detected. Hallway.", 0.9],
+["One more alert. Motion detected. Kitchen.", 1.0],
+["I only have three cameras.", 0.0]],
+"pron": {}, "show": {"three a m": "3 AM"}}
