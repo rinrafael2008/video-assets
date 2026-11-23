@@ -3291,7 +3291,7 @@
    "transform": {
     "position": [
      540.0,
-     660
+     560
     ]
    },
    "content": {
@@ -3351,12 +3351,13 @@
    },
    "content": {
     "kind": "text",
-    "text": "STILL GONE.",
+    "text": "STILL\nGONE.",
     "font": {
      "family": "poppins_black",
-     "size": 190
+     "size": 210
     },
     "color": "#E5383B",
+    "lineHeight": 214,
     "alignment": "center",
     "wrapWidth": 1000,
     "stroke": {

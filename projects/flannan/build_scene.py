@@ -117,7 +117,7 @@ for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
 # last beat: the men are still GONE.
 s = fr(at("men", off=-0.08)); dur = round(fr(TOTAL) - s, 10)
 layers.append({"id": "beat_men", "start": s, "duration": dur, "timeMode": "layer",
-               "transform": {"position": [W / 2, 660]},
+               "transform": {"position": [W / 2, 560]},
                "content": {"kind": "text", "text": "THE MEN ARE", "font": {"family": FONT, "size": 110}, "color": WHITE,
                            "alignment": "center", "wrapWidth": 980,
                            "stroke": {"width": 9, "color": "#000000", "order": "stroke-over-fill"}},
@@ -125,7 +125,7 @@ layers.append({"id": "beat_men", "start": s, "duration": dur, "timeMode": "layer
                "effects": [{"id": "drop_shadow", "params": {"offset": [0, 8], "blur": 18, "color": "#000000cc"}}]})
 layers.append({"id": "beat_gone", "start": s, "duration": dur, "timeMode": "layer",
                "transform": {"position": [W / 2, 860]},
-               "content": {"kind": "text", "text": "STILL GONE.", "font": {"family": FONT, "size": 190}, "color": RED,
+               "content": {"kind": "text", "text": "STILL\nGONE.", "font": {"family": FONT, "size": 210}, "color": RED, "lineHeight": 214,
                            "alignment": "center", "wrapWidth": 1000,
                            "stroke": {"width": 14, "color": "#000000", "order": "stroke-over-fill"}},
                "animations": {"scale": {"keyframes": [{"time": 0, "value": [1.5, 1.5], "easing": "ease_out"}, {"time": 0.25, "value": [1, 1]}]},
