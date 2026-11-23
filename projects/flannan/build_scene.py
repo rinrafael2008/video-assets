@@ -127,6 +127,7 @@ for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
     rnd = random.Random(500 + j)
     for k, line in enumerate(lines):
         d = round(0.07 * k, 3)                                    # stagger the lines
+        ks = fr(s + d); kd = round(e - ks, 10)                    # this line's own start / duration, on the frame grid
         cy = y + (k - (len(lines) - 1) / 2) * lh
         pos = [{"time": 0, "value": [W / 2, cy + 46], "easing": "ease_out"}]
         if slam:                                                  # impact shake, decaying over 0.5 s
@@ -138,13 +139,13 @@ for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
             pos.append({"time": 0.55, "value": [W / 2, cy]})
         else:
             pos.append({"time": 0.2, "value": [W / 2, cy]})
-        pos.append({"time": max(dur - d, 0.7), "value": [W / 2, cy - 26]})          # then keep floating up
+        pos.append({"time": max(kd, 0.7), "value": [W / 2, cy - 26]})          # then keep floating up
         kf_scale = ([{"time": 0, "value": [2.0, 2.0], "easing": "ease_out"}, {"time": 0.12, "value": [0.94, 0.94], "easing": "ease_out"}, {"time": 0.22, "value": [1, 1], "easing": "linear"}]
                     if slam else
                     [{"time": 0, "value": [1.4, 1.4], "easing": "ease_out"}, {"time": 0.16, "value": [1, 1], "easing": "linear"}])
-        kf_scale.append({"time": max(dur - d, 0.7), "value": [1.07, 1.07]})
+        kf_scale.append({"time": max(kd, 0.7), "value": [1.07, 1.07]})
         layers.append({
-            "id": f"beat{j:02d}_{k}", "start": fr(s + d), "duration": round(dur - d, 10), "timeMode": "layer",
+            "id": f"beat{j:02d}_{k}", "start": ks, "duration": kd, "timeMode": "layer",
             "content": {"kind": "text", "text": line, "font": {"family": FONT, "size": fs}, "color": color,
                         "alignment": "center", "wrapWidth": 1040, "letterSpacing": 1,
                         "stroke": {"width": max(8, fs // 12), "color": "#000000", "order": "stroke-over-fill"}},
