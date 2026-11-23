@@ -40,7 +40,7 @@ for i, (t0, key, tin, grade) in enumerate(SHOTS):
     layers.append({
         "id": f"shot{i:02d}", "start": t0f, "duration": dur, "timeMode": "layer",
         "content": {"kind": "media", "assetId": key.lower(), "fit": "cover", "muted": True,
-                    "trim": {"in": tin, "out": round(tin + dur, 5)}},
+                    "trim": {"in": tin, "out": round(tin + dur, 10)}},
         "animations": {"scale": {"keyframes": [{"time": 0, "value": [a, a], "easing": "linear"},
                                                 {"time": dur, "value": [b, b]}]}},
         "effects": GRADE[grade],
@@ -167,6 +167,14 @@ for i, ch in enumerate(chunks):
     e = max(last_end, min(nxt - 0.01, last_end + 0.35))
     segments.append({"start": round(s, 3), "end": round(e, 3), "text": " ".join(x[0] for x in ch),
                      "words": [{"text": x[0], "start": round(x[1], 3), "end": round(x[2], 3)} for x in ch]})
+
+for i in range(len(segments) - 1):          # alignment can overlap a word with the next chunk: clamp
+    nxt = segments[i + 1]["start"]
+    if segments[i]["end"] > nxt:
+        segments[i]["end"] = nxt
+        for w in segments[i]["words"]:
+            w["end"] = min(w["end"], nxt)
+            w["start"] = min(w["start"], round(nxt - 0.001, 3))
 
 layers.append({"id": "captions", "start": 0, "duration": TOTAL,
                "content": {"kind": "captions",

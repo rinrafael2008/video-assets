@@ -81,7 +81,7 @@
     "muted": true,
     "trim": {
      "in": 0.0,
-     "out": 1.73333
+     "out": 1.7333333333
     }
    },
    "animations": {
@@ -130,7 +130,7 @@
     "muted": true,
     "trim": {
      "in": 1.0,
-     "out": 2.83333
+     "out": 2.8333333334
     }
    },
    "animations": {
@@ -179,7 +179,7 @@
     "muted": true,
     "trim": {
      "in": 2.0,
-     "out": 3.56667
+     "out": 3.5666666666
     }
    },
    "animations": {
@@ -228,7 +228,7 @@
     "muted": true,
     "trim": {
      "in": 5.0,
-     "out": 6.46667
+     "out": 6.4666666667
     }
    },
    "animations": {
@@ -326,7 +326,7 @@
     "muted": true,
     "trim": {
      "in": 0.5,
-     "out": 3.53333
+     "out": 3.5333333333
     }
    },
    "animations": {
@@ -375,7 +375,7 @@
     "muted": true,
     "trim": {
      "in": 0.5,
-     "out": 2.93333
+     "out": 2.9333333334
     }
    },
    "animations": {
@@ -424,7 +424,7 @@
     "muted": true,
     "trim": {
      "in": 0.0,
-     "out": 1.26667
+     "out": 1.2666666666
     }
    },
    "animations": {
@@ -473,7 +473,7 @@
     "muted": true,
     "trim": {
      "in": 3.0,
-     "out": 4.53333
+     "out": 4.5333333334
     }
    },
    "animations": {
@@ -522,7 +522,7 @@
     "muted": true,
     "trim": {
      "in": 8.0,
-     "out": 9.66667
+     "out": 9.6666666666
     }
    },
    "animations": {
@@ -669,7 +669,7 @@
     "muted": true,
     "trim": {
      "in": 2.0,
-     "out": 3.76667
+     "out": 3.7666666667
     }
    },
    "animations": {
@@ -767,7 +767,7 @@
     "muted": true,
     "trim": {
      "in": 2.0,
-     "out": 3.83333
+     "out": 3.8333333333
     }
    },
    "animations": {
@@ -816,7 +816,7 @@
     "muted": true,
     "trim": {
      "in": 6.0,
-     "out": 7.86667
+     "out": 7.8666666667
     }
    },
    "animations": {
@@ -865,7 +865,7 @@
     "muted": true,
     "trim": {
      "in": 35.0,
-     "out": 36.76667
+     "out": 36.7666666667
     }
    },
    "animations": {
@@ -963,7 +963,7 @@
     "muted": true,
     "trim": {
      "in": 20.0,
-     "out": 21.26667
+     "out": 21.2666666666
     }
    },
    "animations": {
@@ -1012,7 +1012,7 @@
     "muted": true,
     "trim": {
      "in": 5.0,
-     "out": 6.56667
+     "out": 6.5666666667
     }
    },
    "animations": {
@@ -1061,7 +1061,7 @@
     "muted": true,
     "trim": {
      "in": 1.5,
-     "out": 4.26667
+     "out": 4.2666666667
     }
    },
    "animations": {
@@ -1110,7 +1110,7 @@
     "muted": true,
     "trim": {
      "in": 3.0,
-     "out": 5.66667
+     "out": 5.6666666666
     }
    },
    "animations": {
@@ -1208,7 +1208,7 @@
     "muted": true,
     "trim": {
      "in": 18.0,
-     "out": 21.46667
+     "out": 21.4666666667
     }
    },
    "animations": {
@@ -1257,7 +1257,7 @@
     "muted": true,
     "trim": {
      "in": 12.0,
-     "out": 15.26667
+     "out": 15.2666666667
     }
    },
    "animations": {
@@ -1306,7 +1306,7 @@
     "muted": true,
     "trim": {
      "in": 5.5,
-     "out": 9.63333
+     "out": 9.6333333333
     }
    },
    "animations": {
@@ -4262,7 +4262,7 @@
       },
       {
        "start": 40.459,
-       "end": 40.979,
+       "end": 40.949,
        "text": "feet up the",
        "words": [
         {
@@ -4278,7 +4278,7 @@
         {
          "text": "the",
          "start": 40.929,
-         "end": 40.979
+         "end": 40.949
         }
        ]
       },
