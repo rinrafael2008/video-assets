@@ -110,7 +110,7 @@ for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
                     "alignment": "center", "wrapWidth": 980, "lineHeight": round(fs * 1.02),
                     "letterSpacing": 1, "stroke": {"width": max(8, fs // 12), "color": "#000000", "order": "stroke-over-fill"}},
         "animations": {"scale": {"keyframes": kf_scale},
-                       "opacity": {"keyframes": [{"time": 0, "value": 0}, {"time": 0.05, "value": 1}]}},
+                       "opacity": {"keyframes": [{"time": 0, "value": 1 if j == 0 else 0}, {"time": 0.05, "value": 1}]}},
         "effects": [{"id": "drop_shadow", "params": {"offset": [0, 8], "blur": 18, "color": "#000000cc"}}],
     })
 
@@ -138,7 +138,7 @@ layers.append({"id": "tag", "start": 0.0, "duration": fr(cut(3)), "timeMode": "l
                "content": {"kind": "text", "text": "FLANNAN ISLES · OUTER HEBRIDES", "font": {"family": FONT, "size": 42}, "color": AMBER,
                            "alignment": "center", "wrapWidth": 1000, "letterSpacing": 5,
                            "stroke": {"width": 4, "color": "#000000", "order": "stroke-over-fill"}},
-               "animations": {"opacity": {"keyframes": [{"time": 0, "value": 0}, {"time": 0.3, "value": 1}]}}})
+               "animations": {"opacity": {"keyframes": [{"time": 0, "value": 1}, {"time": 0.3, "value": 1}]}}})
 
 # ---- captions (word-timed) -----------------------------------------------------
 words = []

@@ -1556,7 +1556,7 @@
      "keyframes": [
       {
        "time": 0,
-       "value": 0
+       "value": 1
       },
       {
        "time": 0.05,
@@ -3446,7 +3446,7 @@
      "keyframes": [
       {
        "time": 0,
-       "value": 0
+       "value": 1
       },
       {
        "time": 0.3,
