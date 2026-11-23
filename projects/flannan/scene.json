@@ -3428,14 +3428,14 @@
     "text": "FLANNAN ISLES \u00b7 OUTER HEBRIDES",
     "font": {
      "family": "poppins_black",
-     "size": 40
+     "size": 42
     },
     "color": "#FFC857",
     "alignment": "center",
     "wrapWidth": 1000,
     "letterSpacing": 5,
     "stroke": {
-     "width": 6,
+     "width": 4,
      "color": "#000000",
      "order": "stroke-over-fill"
     }
@@ -3617,18 +3617,6 @@
          "text": "heard?",
          "start": 5.95,
          "end": 6.37
-        }
-       ]
-      },
-      {
-       "start": 6.73,
-       "end": 7.44,
-       "text": "Fake.",
-       "words": [
-        {
-         "text": "Fake.",
-         "start": 6.73,
-         "end": 7.09
         }
        ]
       },
@@ -4115,18 +4103,6 @@
        ]
       },
       {
-       "start": 33.968,
-       "end": 34.758,
-       "text": "Fiction.",
-       "words": [
-        {
-         "text": "Fiction.",
-         "start": 33.968,
-         "end": 34.408
-        }
-       ]
-      },
-      {
        "start": 35.229,
        "end": 35.889,
        "text": "But the rocks",
@@ -4396,23 +4372,6 @@
          "text": "were",
          "start": 47.615,
          "end": 47.685
-        }
-       ]
-      },
-      {
-       "start": 47.685,
-       "end": 49.085,
-       "text": "never found.",
-       "words": [
-        {
-         "text": "never",
-         "start": 47.685,
-         "end": 48.075
-        },
-        {
-         "text": "found.",
-         "start": 48.075,
-         "end": 48.735
         }
        ]
       },

@@ -135,9 +135,9 @@ layers.append({"id": "beat_gone", "start": s, "duration": dur, "timeMode": "laye
 # small location tag (top safe band)
 layers.append({"id": "tag", "start": 0.0, "duration": fr(cut(3)), "timeMode": "layer",
                "transform": {"position": [W / 2, 400]},
-               "content": {"kind": "text", "text": "FLANNAN ISLES · OUTER HEBRIDES", "font": {"family": FONT, "size": 40}, "color": AMBER,
+               "content": {"kind": "text", "text": "FLANNAN ISLES · OUTER HEBRIDES", "font": {"family": FONT, "size": 42}, "color": AMBER,
                            "alignment": "center", "wrapWidth": 1000, "letterSpacing": 5,
-                           "stroke": {"width": 6, "color": "#000000", "order": "stroke-over-fill"}},
+                           "stroke": {"width": 4, "color": "#000000", "order": "stroke-over-fill"}},
                "animations": {"opacity": {"keyframes": [{"time": 0, "value": 0}, {"time": 0.3, "value": 1}]}}})
 
 # ---- captions (word-timed) -----------------------------------------------------
@@ -168,6 +168,8 @@ for i, ch in enumerate(chunks):
     segments.append({"start": round(s, 3), "end": round(e, 3), "text": " ".join(x[0] for x in ch),
                      "words": [{"text": x[0], "start": round(x[1], 3), "end": round(x[2], 3)} for x in ch]})
 
+DUP = {"fake.", "fiction.", "never found."}   # a giant beat already says it
+segments = [g for g in segments if g["text"].lower() not in DUP or g["start"] > 50]
 for i in range(len(segments) - 1):          # alignment can overlap a word with the next chunk: clamp
     nxt = segments[i + 1]["start"]
     if segments[i]["end"] > nxt:
