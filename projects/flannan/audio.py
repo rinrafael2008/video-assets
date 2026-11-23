@@ -75,9 +75,7 @@ def music_flannan(mix, total, add):
 
 
 def voice_fx(v):
-    warm = _ma(v, 90)
-    v = v + 0.30 * warm
-    v = sfx.reverb(v.astype(np.float32), wet=0.10, rt=0.9)
+    """dry, clean voice: no reverb, no bass boost -- level only"""
     return (v / (np.max(np.abs(v)) + 1e-9) * 0.95).astype(np.float32)
 
 

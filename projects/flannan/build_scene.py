@@ -28,22 +28,43 @@ for k, (url, dur, _) in CLIPS.items():
 
 layers = []
 
-# ---- footage ---------------------------------------------------------------
+# ---- footage: real camera motion (push / pan / handheld shake) + a punch and RGB glitch on every cut ----
+import random
+STATIC = {"HALL", "CANDLE", "BOOK", "BOOK2", "PIER", "LH"}      # clips with little motion of their own: move the camera more
 for i, (t0, key, tin, grade) in enumerate(SHOTS):
     t1 = SHOTS[i + 1][0] if i + 1 < len(SHOTS) else TOTAL
     t0f, t1f = fr(t0), fr(t1)
     dur = round(t1f - t0f, 10)
     clip_dur = CLIPS[key][1]
     assert tin + dur <= clip_dur + 0.01, (i, key, tin, dur, clip_dur)
-    zin = (i % 2 == 0)
-    a, b = (1.0, 1.16) if zin else (1.16, 1.0)
+    rnd = random.Random(100 + i)
+    if key == "HALL":   z0, z1 = 1.06, 1.44                       # walking down the corridor
+    elif i % 2 == 0:    z0, z1 = 1.08, 1.34 if key in STATIC else 1.26
+    else:               z0, z1 = (1.34 if key in STATIC else 1.26), 1.08
+    landscape = CLIPS[key][0].find("1440_2560") < 0 and CLIPS[key][0].find("1080_1920") < 0 and CLIPS[key][0].find("1440_2730") < 0
+    ax = 70 if landscape else 18                                  # landscape clips are cropped wide: lots of room to pan sideways
+    ay = 16
+    sx, sy = rnd.choice((-1, 1)), rnd.choice((-1, 1))
+    p0 = (W / 2 - sx * ax, H / 2 - sy * ay); p1 = (W / 2 + sx * ax, H / 2 + sy * ay)
+    pos, t = [], 0.0
+    while t < dur - 1e-6:                                         # drift line + handheld shake every 0.1 s
+        u = t / dur
+        pos.append({"time": round(t, 3), "value": [round(p0[0] + (p1[0] - p0[0]) * u + rnd.uniform(-5, 5), 1),
+                                                     round(p0[1] + (p1[1] - p0[1]) * u + rnd.uniform(-5, 5), 1)], "easing": "linear"})
+        t += 0.1
+    pos.append({"time": dur, "value": [round(p1[0], 1), round(p1[1], 1)]})
     layers.append({
         "id": f"shot{i:02d}", "start": t0f, "duration": dur, "timeMode": "layer",
         "content": {"kind": "media", "assetId": key.lower(), "fit": "cover", "muted": True,
                     "trim": {"in": tin, "out": round(tin + dur, 10)}},
-        "animations": {"scale": {"keyframes": [{"time": 0, "value": [a, a], "easing": "linear"},
-                                                {"time": dur, "value": [b, b]}]}},
-        "effects": GRADE[grade],
+        "animations": {
+            "scale": {"keyframes": [{"time": 0, "value": [round(z0 * 1.12, 3)] * 2, "easing": "ease_out"},
+                                     {"time": 0.18, "value": [z0, z0], "easing": "linear"},
+                                     {"time": dur, "value": [z1, z1]}]},
+            "position": {"keyframes": pos}},
+        "effects": GRADE[grade] + [{"id": "channel_shift", "params": {
+            "horizontal": {"keyframes": [{"time": 0, "value": 26, "easing": "ease_out"}, {"time": 0.22, "value": 0}]},
+            "vertical": 0}}],
     })
 
 # ---- global finish: grain + vignette on everything under the text ------------
@@ -95,24 +116,42 @@ BEATS = [
     (cut(24), cut(25), "NEVER\nFOUND.", 250, RED, 760, True),
     (cut(25), at("men", off=-0.08), "THE LEGEND\nIS FICTION.", 150, WHITE, 760, False),
 ]
+SHADOW = [{"id": "drop_shadow", "params": {"offset": [0, 8], "blur": 18, "color": "#000000cc"}}]
 for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
     s, e = fr(s), fr(e)
     dur = round(e - s, 10)
-    widest = max(len(l) for l in text.split("\n"))
+    lines = text.split("\n")
+    widest = max(len(l) for l in lines)
     fs = int(min(size, 960 / (widest * 0.80)))
-    kf_scale = ([{"time": 0, "value": [1.9, 1.9], "easing": "ease_out"}, {"time": 0.14, "value": [0.96, 0.96], "easing": "ease_out"}, {"time": 0.24, "value": [1, 1]}]
-                if slam else
-                [{"time": 0, "value": [1.18, 1.18], "easing": "ease_out"}, {"time": 0.16, "value": [1, 1]}])
-    layers.append({
-        "id": f"beat{j:02d}", "start": s, "duration": dur, "timeMode": "layer",
-        "transform": {"position": [W / 2, y]},
-        "content": {"kind": "text", "text": text, "font": {"family": FONT, "size": fs}, "color": color,
-                    "alignment": "center", "wrapWidth": 980, "lineHeight": round(fs * 1.02),
-                    "letterSpacing": 1, "stroke": {"width": max(8, fs // 12), "color": "#000000", "order": "stroke-over-fill"}},
-        "animations": {"scale": {"keyframes": kf_scale},
-                       "opacity": {"keyframes": [{"time": 0, "value": 1 if j == 0 else 0}, {"time": 0.05, "value": 1}]}},
-        "effects": [{"id": "drop_shadow", "params": {"offset": [0, 8], "blur": 18, "color": "#000000cc"}}],
-    })
+    lh = round(fs * 1.04)
+    rnd = random.Random(500 + j)
+    for k, line in enumerate(lines):
+        d = round(0.07 * k, 3)                                    # stagger the lines
+        cy = y + (k - (len(lines) - 1) / 2) * lh
+        pos = [{"time": 0, "value": [W / 2, cy + 46], "easing": "ease_out"}]
+        if slam:                                                  # impact shake, decaying over 0.5 s
+            tt = 0.14
+            while tt < 0.55:
+                amp = 16 * (1 - (tt - 0.14) / 0.41)
+                pos.append({"time": round(tt, 2), "value": [round(W / 2 + rnd.uniform(-amp, amp), 1), round(cy + rnd.uniform(-amp, amp), 1)], "easing": "linear"})
+                tt += 0.04
+            pos.append({"time": 0.55, "value": [W / 2, cy]})
+        else:
+            pos.append({"time": 0.2, "value": [W / 2, cy]})
+        pos.append({"time": max(dur - d, 0.7), "value": [W / 2, cy - 26]})          # then keep floating up
+        kf_scale = ([{"time": 0, "value": [2.0, 2.0], "easing": "ease_out"}, {"time": 0.12, "value": [0.94, 0.94], "easing": "ease_out"}, {"time": 0.22, "value": [1, 1], "easing": "linear"}]
+                    if slam else
+                    [{"time": 0, "value": [1.4, 1.4], "easing": "ease_out"}, {"time": 0.16, "value": [1, 1], "easing": "linear"}])
+        kf_scale.append({"time": max(dur - d, 0.7), "value": [1.07, 1.07]})
+        layers.append({
+            "id": f"beat{j:02d}_{k}", "start": fr(s + d), "duration": round(dur - d, 10), "timeMode": "layer",
+            "content": {"kind": "text", "text": line, "font": {"family": FONT, "size": fs}, "color": color,
+                        "alignment": "center", "wrapWidth": 1040, "letterSpacing": 1,
+                        "stroke": {"width": max(8, fs // 12), "color": "#000000", "order": "stroke-over-fill"}},
+            "animations": {"scale": {"keyframes": kf_scale}, "position": {"keyframes": pos},
+                           "opacity": {"keyframes": [{"time": 0, "value": 1 if (j == 0 and k == 0) else 0}, {"time": 0.06, "value": 1}]}},
+            "effects": SHADOW,
+        })
 
 # last beat: the men are still GONE.
 s = fr(at("men", off=-0.08)); dur = round(fr(TOTAL) - s, 10)
@@ -181,7 +220,12 @@ for i in range(len(segments) - 1):          # alignment can overlap a word with 
 layers.append({"id": "captions", "start": 0, "duration": TOTAL,
                "content": {"kind": "captions",
                            "style": {"font": {"family": FONT, "size": 72}, "color": WHITE, "alignment": "center",
-                                     "wrapWidth": 1000, "offset": [0, 470], "textCase": "upper",
+                                     "wrapWidth": 1000, "offset": [0, 470], "textCase": "upper", "animationPivot": "word",
+                                     "animation": [
+                                         {"transform": {"kind": "scale", "value": {"keyframes": [{"t": 0, "v": 0.7, "easing": "ease_out"}, {"t": 0.13, "v": 1.08, "easing": "ease_out"}, {"t": 0.22, "v": 1}]}},
+                                          "selector": {"basedOn": "word", "start": 0, "end": 1, "shape": "square"}},
+                                         {"transform": {"kind": "opacity", "value": {"keyframes": [{"t": 0, "v": 0}, {"t": 0.06, "v": 1}]}},
+                                          "selector": {"basedOn": "word", "start": 0, "end": 1, "shape": "square"}}],
                                      "effects": [{"id": "stroke", "params": {"width": 9, "color": "#000000ff"}}],
                                      "decorations": [{"target": "highlighted", "place": "text", "color": AMBER, "window": "active"}]},
                            "transcript": {"segments": segments}}})
