@@ -54,7 +54,7 @@ layers.append({"id": "finish", "start": 0, "duration": TOTAL, "adjustmentLayer":
 
 # ---- bottom shade for the caption band ---------------------------------------
 layers.append({"id": "shade", "start": 0, "duration": TOTAL,
-               "transform": {"position": [0, 600]},
+               "transform": {"position": [W / 2, 1470]},
                "content": {"kind": "shape", "items": [
                    {"type": "rect", "size": [W, 900], "position": [0, 0]},
                    {"type": "gradientFill", "startPoint": [0, -450], "endPoint": [0, 450],
@@ -105,7 +105,7 @@ for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
                 [{"time": 0, "value": [1.18, 1.18], "easing": "ease_out"}, {"time": 0.16, "value": [1, 1]}])
     layers.append({
         "id": f"beat{j:02d}", "start": s, "duration": dur, "timeMode": "layer",
-        "transform": {"position": [0, y - H / 2]},
+        "transform": {"position": [W / 2, y]},
         "content": {"kind": "text", "text": text, "font": {"family": FONT, "size": fs}, "color": color,
                     "alignment": "center", "wrapWidth": 980, "lineHeight": round(fs * 1.02),
                     "letterSpacing": 1, "stroke": {"width": max(8, fs // 12), "color": "#000000", "order": "stroke-over-fill"}},
@@ -117,14 +117,14 @@ for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
 # last beat: the men are still GONE.
 s = fr(at("men", off=-0.08)); dur = round(fr(TOTAL) - s, 10)
 layers.append({"id": "beat_men", "start": s, "duration": dur, "timeMode": "layer",
-               "transform": {"position": [0, 660 - H / 2]},
+               "transform": {"position": [W / 2, 660]},
                "content": {"kind": "text", "text": "THE MEN ARE", "font": {"family": FONT, "size": 110}, "color": WHITE,
                            "alignment": "center", "wrapWidth": 980,
                            "stroke": {"width": 9, "color": "#000000", "order": "stroke-over-fill"}},
                "animations": {"opacity": {"keyframes": [{"time": 0, "value": 0}, {"time": 0.08, "value": 1}]}},
                "effects": [{"id": "drop_shadow", "params": {"offset": [0, 8], "blur": 18, "color": "#000000cc"}}]})
 layers.append({"id": "beat_gone", "start": s, "duration": dur, "timeMode": "layer",
-               "transform": {"position": [0, 860 - H / 2]},
+               "transform": {"position": [W / 2, 860]},
                "content": {"kind": "text", "text": "STILL GONE.", "font": {"family": FONT, "size": 190}, "color": RED,
                            "alignment": "center", "wrapWidth": 1000,
                            "stroke": {"width": 14, "color": "#000000", "order": "stroke-over-fill"}},
@@ -134,7 +134,7 @@ layers.append({"id": "beat_gone", "start": s, "duration": dur, "timeMode": "laye
 
 # small location tag (top safe band)
 layers.append({"id": "tag", "start": 0.0, "duration": fr(cut(3)), "timeMode": "layer",
-               "transform": {"position": [0, 400 - H / 2]},
+               "transform": {"position": [W / 2, 400]},
                "content": {"kind": "text", "text": "FLANNAN ISLES · OUTER HEBRIDES", "font": {"family": FONT, "size": 40}, "color": AMBER,
                            "alignment": "center", "wrapWidth": 1000, "letterSpacing": 5,
                            "stroke": {"width": 6, "color": "#000000", "order": "stroke-over-fill"}},
