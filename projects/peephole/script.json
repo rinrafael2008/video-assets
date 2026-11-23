@@ -1,0 +1,72 @@
+{
+"voice": "bm_george",
+"speed": 0.98,
+"lines": [
+[
+"Every night at three oh seven, something knocks on my door.",
+0.45
+],
+[
+"Three.",
+0.32
+],
+[
+"Slow.",
+0.32
+],
+[
+"Knocks.",
+0.7
+],
+[
+"I live alone on the fourteenth floor. Nobody else lives down my hall.",
+0.4
+],
+[
+"Last night, I looked through the peephole.",
+0.5
+],
+[
+"The hallway looked empty. Then the light flickered, and something tall was standing at the far end.",
+0.4
+],
+[
+"The light flickered again. It was halfway down the hall.",
+0.3
+],
+[
+"Again. Right outside my door.",
+0.4
+],
+[
+"Its head was bent against the ceiling. Its fingers hung down to its knees.",
+0.45
+],
+[
+"I stepped back. Then the knocking started again. Three slow knocks.",
+0.35
+],
+[
+"But not from the hallway.",
+0.5
+],
+[
+"They were coming from my closet.",
+0.8
+],
+[
+"The thing outside was never trying to get in.",
+0.4
+],
+[
+"It was trying to tell me I wasn't alone.",
+0.0
+]
+],
+"pron": {
+"peephole": "P IY P HH OW L"
+},
+"show": {
+"three oh seven": "3:07"
+}
+}
