@@ -14,7 +14,7 @@ FONT_URL = "https://pastatic.picsart.com/63211336242695272495.ttf"   # Poppins B
 FONT = "poppins_black"
 W, H, FPS = 1080, 1920, 30
 RED, AMBER, WHITE = "#E5383B", "#FFC857", "#FFFFFF"
-fr = lambda t: round(round(t * FPS) / FPS, 4)      # snap to the frame grid
+fr = lambda t: round(round(t * FPS) / FPS, 10)      # snap to the frame grid (exact)
 
 GRADE = {
     "cold": [{"id": "adjust", "params": {"saturation": -0.40, "contrast": 0.18, "temperature": -0.30, "exposure": -0.25, "shadows": -0.1}}],
@@ -32,7 +32,7 @@ layers = []
 for i, (t0, key, tin, grade) in enumerate(SHOTS):
     t1 = SHOTS[i + 1][0] if i + 1 < len(SHOTS) else TOTAL
     t0f, t1f = fr(t0), fr(t1)
-    dur = round(t1f - t0f, 4)
+    dur = round(t1f - t0f, 10)
     clip_dur = CLIPS[key][1]
     assert tin + dur <= clip_dur + 0.01, (i, key, tin, dur, clip_dur)
     zin = (i % 2 == 0)
@@ -40,7 +40,7 @@ for i, (t0, key, tin, grade) in enumerate(SHOTS):
     layers.append({
         "id": f"shot{i:02d}", "start": t0f, "duration": dur, "timeMode": "layer",
         "content": {"kind": "media", "assetId": key.lower(), "fit": "cover", "muted": True,
-                    "trim": {"in": round(tin, 3), "out": round(tin + dur, 3)}},
+                    "trim": {"in": tin, "out": round(tin + dur, 5)}},
         "animations": {"scale": {"keyframes": [{"time": 0, "value": [a, a], "easing": "linear"},
                                                 {"time": dur, "value": [b, b]}]}},
         "effects": GRADE[grade],
@@ -48,7 +48,7 @@ for i, (t0, key, tin, grade) in enumerate(SHOTS):
 
 # ---- global finish: grain + vignette on everything under the text ------------
 layers.append({"id": "finish", "start": 0, "duration": TOTAL, "adjustmentLayer": True,
-               "content": {"kind": "empty"},
+               "content": {"kind": "color", "color": "#00000000"},
                "effects": [{"id": "vignette", "params": {"fade": 25, "size": 75}},
                            {"id": "film_grain", "params": {"intensity": 0.16, "size": 2, "color": 0.3}}]})
 
@@ -97,7 +97,7 @@ BEATS = [
 ]
 for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
     s, e = fr(s), fr(e)
-    dur = round(e - s, 4)
+    dur = round(e - s, 10)
     widest = max(len(l) for l in text.split("\n"))
     fs = int(min(size, 960 / (widest * 0.80)))
     kf_scale = ([{"time": 0, "value": [1.9, 1.9], "easing": "ease_out"}, {"time": 0.14, "value": [0.96, 0.96], "easing": "ease_out"}, {"time": 0.24, "value": [1, 1]}]
@@ -115,7 +115,7 @@ for j, (s, e, text, size, color, y, slam) in enumerate(BEATS):
     })
 
 # last beat: the men are still GONE.
-s = fr(at("men", off=-0.08)); dur = round(fr(TOTAL) - s, 4)
+s = fr(at("men", off=-0.08)); dur = round(fr(TOTAL) - s, 10)
 layers.append({"id": "beat_men", "start": s, "duration": dur, "timeMode": "layer",
                "transform": {"position": [0, 660 - H / 2]},
                "content": {"kind": "text", "text": "THE MEN ARE", "font": {"family": FONT, "size": 110}, "color": WHITE,
@@ -164,7 +164,7 @@ for i, ch in enumerate(chunks):
     s = ch[0][1]
     last_end = ch[-1][2]
     nxt = chunks[i + 1][0][1] if i + 1 < len(chunks) else TOTAL
-    e = min(nxt - 0.01, last_end + 0.35)
+    e = max(last_end, min(nxt - 0.01, last_end + 0.35))
     segments.append({"start": round(s, 3), "end": round(e, 3), "text": " ".join(x[0] for x in ch),
                      "words": [{"text": x[0], "start": round(x[1], 3), "end": round(x[2], 3)} for x in ch]})
 
