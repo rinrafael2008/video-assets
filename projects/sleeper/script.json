@@ -1,0 +1,21 @@
+{
+"voice": "am_adam",
+"speed": 1.0,
+"lines": [
+["My sleep app says two people slept in my bed last night. I live alone.", 0.5, {}],
+["So tonight, I watched it live.", 0.5, {}],
+["Sleeper one. Seventy eight beats a minute.", 0.4, {}],
+["Sleeper two. Zero.", 0.8, {}],
+["Then the app pinged. Sleep talking detected.", 0.55, {}],
+["Is he asleep?", 0.5, {"fx": "whisper", "speed": 0.9}],
+["Not yet. Keep still.", 0.85, {"fx": "whisper", "speed": 0.86}],
+["Both voices matched mine.", 0.5, {}],
+["The app had named them. Sleeper two was Daniel. My name.", 0.5, {}],
+["Sleeper one was Guest.", 0.45, {}],
+["That was me.", 0.8, {}],
+["New alert. Guest detected. Owner notified.", 0.6, {}],
+["Something beside me sat up.", 0.4, {}]
+],
+"pron": {"pinged": "P IH NG D"},
+"show": {"seventy eight": "78"}
+}

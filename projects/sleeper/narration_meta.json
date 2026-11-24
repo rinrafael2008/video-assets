@@ -1,0 +1,70 @@
+{
+ "total": 33.291,
+ "lines": [
+  {
+   "text": "My sleep app says two people slept in my bed last night. I live alone.",
+   "start": 0.0,
+   "end": 4.203
+  },
+  {
+   "text": "So tonight, I watched it live.",
+   "start": 4.703,
+   "end": 6.473
+  },
+  {
+   "text": "Sleeper one. Seventy eight beats a minute.",
+   "start": 6.973,
+   "end": 9.085
+  },
+  {
+   "text": "Sleeper two. Zero.",
+   "start": 9.485,
+   "end": 10.851
+  },
+  {
+   "text": "Then the app pinged. Sleep talking detected.",
+   "start": 11.651,
+   "end": 14.232
+  },
+  {
+   "text": "Is he asleep?",
+   "start": 14.782,
+   "end": 15.806
+  },
+  {
+   "text": "Not yet. Keep still.",
+   "start": 16.306,
+   "end": 17.757
+  },
+  {
+   "text": "Both voices matched mine.",
+   "start": 18.607,
+   "end": 20.228
+  },
+  {
+   "text": "The app had named them. Sleeper two was Daniel. My name.",
+   "start": 20.728,
+   "end": 23.949
+  },
+  {
+   "text": "Sleeper one was Guest.",
+   "start": 24.449,
+   "end": 25.836
+  },
+  {
+   "text": "That was me.",
+   "start": 26.286,
+   "end": 27.161
+  },
+  {
+   "text": "New alert. Guest detected. Owner notified.",
+   "start": 27.961,
+   "end": 30.734
+  },
+  {
+   "text": "Something beside me sat up.",
+   "start": 31.334,
+   "end": 32.891
+  }
+ ]
+}
