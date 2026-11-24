@@ -1,0 +1,55 @@
+{
+ "total": 34.413,
+ "lines": [
+  {
+   "text": "Mom just texted me. I'm outside. Open the door.",
+   "start": 0.0,
+   "end": 3.008
+  },
+  {
+   "text": "But Mom was upstairs, asleep. I'd said goodnight to her an hour ago.",
+   "start": 3.458,
+   "end": 7.405
+  },
+  {
+   "text": "I opened the doorbell camera. A woman stood on the porch, smiling and waving. It was Mom.",
+   "start": 7.905,
+   "end": 12.961
+  },
+  {
+   "text": "I typed, what's my middle name?",
+   "start": 13.511,
+   "end": 15.324
+  },
+  {
+   "text": "The dots appeared. Disappeared. Appeared.",
+   "start": 15.724,
+   "end": 17.921
+  },
+  {
+   "text": "She got it right. Then came a second text. Whatever is upstairs, do not answer it.",
+   "start": 18.471,
+   "end": 22.93
+  },
+  {
+   "text": "Honey? Who are you texting?",
+   "start": 23.83,
+   "end": 25.878
+  },
+  {
+   "text": "On the camera, the woman stopped smiling. She mouthed one word, over and over.",
+   "start": 26.578,
+   "end": 30.802
+  },
+  {
+   "text": "Run.",
+   "start": 31.152,
+   "end": 31.749
+  },
+  {
+   "text": "My doorknob started to turn.",
+   "start": 32.349,
+   "end": 34.013
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+"voice": "am_adam",
+"speed": 1.0,
+"lines": [
+["Mom just texted me. I'm outside. Open the door.", 0.45, {}],
+["But Mom was upstairs, asleep. I'd said goodnight to her an hour ago.", 0.5, {}],
+["I opened the doorbell camera. A woman stood on the porch, smiling and waving. It was Mom.", 0.55, {}],
+["I typed, what's my middle name?", 0.4, {}],
+["The dots appeared. Disappeared. Appeared.", 0.55, {}],
+["She got it right. Then came a second text. Whatever is upstairs, do not answer it.", 0.9, {}],
+["Honey? Who are you texting?", 0.7, {"voice": "af_nicole", "speed": 0.86, "fx": "door"}],
+["On the camera, the woman stopped smiling. She mouthed one word, over and over.", 0.35, {}],
+["Run.", 0.6, {}],
+["My doorknob started to turn.", 0.4, {}]
+],
+"pron": {"texted": "T EH K S T AH D"},
+"show": {}
+}
